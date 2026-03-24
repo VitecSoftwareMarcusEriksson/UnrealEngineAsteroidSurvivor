@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.3",
+	"EngineAssociation": "5.7",
 	"Category": "",
 	"Description": "A top-down arcade-style Asteroid Survivor game built with Unreal Engine 5.",
 	"Modules": [
