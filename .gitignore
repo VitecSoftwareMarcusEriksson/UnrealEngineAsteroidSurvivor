@@ -1,0 +1,35 @@
+# Unreal Engine build artifacts
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Unreal Engine generated files
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+
+# Rider
+.idea/
+
+# Content-only packages (binaries generated at cook time)
+*.uasset
+*.umap
+
+# OS-specific
+.DS_Store
+Thumbs.db
