@@ -2,7 +2,6 @@
 
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorProjectile.h"
-#include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorGameMode.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
@@ -22,8 +21,8 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Collision sphere as root – provides reliable overlap detection for
-	// asteroid hits and is the component moved by SetActorLocation.
+	// Collision sphere as root – provides reliable overlap detection
+	// and is the component moved by SetActorLocation.
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
 	CollisionSphere->InitSphereRadius(40.0f);
 	CollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -253,14 +252,10 @@ void AAsteroidSurvivorShip::OnShipOverlapBegin(UPrimitiveComponent* OverlappedCo
 		return;
 	}
 
-	AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor);
-	if (!Asteroid)
+	if (!OtherActor || OtherActor == this)
 	{
 		return;
 	}
-
-	// Destroy the asteroid on contact (no split, no score)
-	Asteroid->Destroy();
 
 	// Notify game mode to lose a life
 	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(

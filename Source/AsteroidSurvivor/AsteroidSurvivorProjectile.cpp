@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AsteroidSurvivorProjectile.h"
-#include "AsteroidSurvivorAsteroid.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -17,7 +16,7 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 	SetRootComponent(CollisionSphere);
 
 	// Set up overlap-based collision so the projectile can move freely
-	// and detect asteroid hits via overlap events.
+	// and detect hits via overlap events.
 	CollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CollisionSphere->SetCollisionObjectType(ECC_WorldDynamic);
 	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -97,12 +96,9 @@ void AAsteroidSurvivorProjectile::OnOverlapBegin(UPrimitiveComponent* Overlapped
                                                    bool bFromSweep,
                                                    const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor != this && OtherActor != GetOwner())
+	if (OtherActor && OtherActor != this && OtherActor != GetOwner()
+		&& !OtherActor->IsA(AAsteroidSurvivorProjectile::StaticClass()))
 	{
-		if (AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor))
-		{
-			Asteroid->TakeDamage_Asteroid(Damage);
-			Destroy();
-		}
+		Destroy();
 	}
 }

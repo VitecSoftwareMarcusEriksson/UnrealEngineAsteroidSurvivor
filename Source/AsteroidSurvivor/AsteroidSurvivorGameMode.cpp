@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AsteroidSurvivorGameMode.h"
-#include "AsteroidSurvivorAsteroidSpawner.h"
 #include "AsteroidSurvivorBackground.h"
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorPlayerController.h"
@@ -28,24 +27,9 @@ void AAsteroidSurvivorGameMode::BeginPlay()
 	// visible even in an empty map.
 	EnsureLightingExists();
 
-	// Find or spawn the asteroid spawner
-	for (TActorIterator<AAsteroidSurvivorAsteroidSpawner> It(GetWorld()); It; ++It)
-	{
-		AsteroidSpawner = *It;
-		break;
-	}
-
-	if (!AsteroidSpawner)
-	{
-		AsteroidSpawner = GetWorld()->SpawnActor<AAsteroidSurvivorAsteroidSpawner>(
-			AAsteroidSurvivorAsteroidSpawner::StaticClass());
-	}
-
 	// Spawn parallax scrolling background
 	Background = GetWorld()->SpawnActor<AAsteroidSurvivorBackground>(
 		AAsteroidSurvivorBackground::StaticClass());
-
-	StartWave(CurrentWave);
 }
 
 void AAsteroidSurvivorGameMode::Tick(float DeltaSeconds)
@@ -60,25 +44,6 @@ void AAsteroidSurvivorGameMode::Tick(float DeltaSeconds)
 			bWaitingForRespawn = false;
 			RespawnPlayer();
 		}
-	}
-
-	if (bWaitingForNextWave)
-	{
-		NextWaveTimer -= DeltaSeconds;
-		if (NextWaveTimer <= 0.0f)
-		{
-			bWaitingForNextWave = false;
-			CurrentWave++;
-			StartWave(CurrentWave);
-		}
-	}
-
-	// Safety check: advance wave if all asteroids are cleared (e.g. by ship collision)
-	if (!bGameOver && !bWaitingForNextWave && AsteroidSpawner &&
-	    AsteroidSpawner->GetActiveAsteroidCount() == 0)
-	{
-		bWaitingForNextWave = true;
-		NextWaveTimer = NextWaveDelay;
 	}
 }
 
@@ -102,28 +67,6 @@ void AAsteroidSurvivorGameMode::OnPlayerShipHit()
 	if (Lives <= 0)
 	{
 		TriggerGameOver();
-	}
-}
-
-void AAsteroidSurvivorGameMode::OnAsteroidDestroyed(int32 Points)
-{
-	Score += Points;
-
-	// Check if all asteroids are cleared – start next wave.
-	// Use <= 1 because the dying asteroid has not yet been destroyed when
-	// NotifyGameMode is called, so it is still counted by GetActiveAsteroidCount().
-	if (AsteroidSpawner && AsteroidSpawner->GetActiveAsteroidCount() <= 1 && !bWaitingForNextWave)
-	{
-		bWaitingForNextWave = true;
-		NextWaveTimer = NextWaveDelay;
-	}
-}
-
-void AAsteroidSurvivorGameMode::StartWave(int32 WaveNumber)
-{
-	if (AsteroidSpawner)
-	{
-		AsteroidSpawner->StartWave(WaveNumber);
 	}
 }
 
