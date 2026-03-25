@@ -68,6 +68,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Thorium")
 	float Lifetime = 10.0f;
 
+	/** Scale of the outer glow mesh. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Thorium")
+	float OuterGlowScale = 0.35f;
+
 	/** Rate at which the initial drift velocity decays (per second). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Thorium")
 	float DriftDrag = 3.0f;

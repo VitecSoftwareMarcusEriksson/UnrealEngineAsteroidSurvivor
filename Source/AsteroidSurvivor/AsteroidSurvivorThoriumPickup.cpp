@@ -48,7 +48,7 @@ AAsteroidSurvivorThoriumPickup::AAsteroidSurvivorThoriumPickup()
 	{
 		OuterGlowMesh->SetStaticMesh(SphereMeshAsset.Object);
 	}
-	OuterGlowMesh->SetRelativeScale3D(FVector(0.35f));
+	OuterGlowMesh->SetRelativeScale3D(FVector(OuterGlowScale));
 
 	// Bright glow light
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
@@ -161,8 +161,7 @@ void AAsteroidSurvivorThoriumPickup::Tick(float DeltaTime)
 	const float PulseFactor = 0.7f + 0.3f * FMath::Sin(PulsePhase);
 	if (OuterGlowMesh)
 	{
-		const float BaseOuterScale = 0.35f;
-		const float OuterScale = BaseOuterScale * PulseFactor;
+		const float OuterScale = OuterGlowScale * PulseFactor;
 		OuterGlowMesh->SetRelativeScale3D(FVector(OuterScale));
 		OuterGlowMesh->SetRelativeLocation(FVector(0.0f, 0.0f, Bob));
 	}
