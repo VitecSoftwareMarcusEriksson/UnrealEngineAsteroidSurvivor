@@ -6,6 +6,7 @@
 #include "GameFramework/Pawn.h"
 #include "AsteroidSurvivorShip.generated.h"
 
+class USceneComponent;
 class UStaticMeshComponent;
 class UCameraComponent;
 class USpringArmComponent;
@@ -33,8 +34,13 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override;
 
 	// ── Components ──────────────────────────────────────────────────────────
+	/** Invisible root that keeps the actor oriented in the XY play-plane. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USceneComponent* SceneRoot = nullptr;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* ShipMesh = nullptr;
 
@@ -66,7 +72,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float MaxSpeed = 900.0f;
 
-	/** Linear drag applied each frame (0 = no drag, 1 = instant stop) */
+	/** Velocity retention factor per frame at 60 FPS (0 = instant stop, 1 = no drag).
+	 *  Applied in a frame-rate independent manner. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float Drag = 0.98f;
 
@@ -122,4 +129,7 @@ private:
 
 	/** Creates default Enhanced Input actions and mapping context in the constructor. */
 	void SetupDefaultInputActions();
+
+	/** Registers the Enhanced Input mapping context with the local player subsystem. */
+	void RegisterInputMappingContext();
 };
