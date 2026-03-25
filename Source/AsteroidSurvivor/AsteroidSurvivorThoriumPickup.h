@@ -46,6 +46,9 @@ protected:
 	UStaticMeshComponent* PickupMesh = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* OuterGlowMesh = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UPointLightComponent* GlowLight = nullptr;
 
 	// ── Tuning ──────────────────────────────────────────────────────────────

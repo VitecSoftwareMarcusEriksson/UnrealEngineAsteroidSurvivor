@@ -77,7 +77,7 @@ void AAsteroidSurvivorGameMode::AddThorium(int32 Amount)
 	{
 		CurrentThorium -= ThoriumForNextLevel;
 		CurrentLevel++;
-		ThoriumForNextLevel = BaseThoriumPerLevel * CurrentLevel;
+		ThoriumForNextLevel *= 2;
 		PresentUpgradeOptions();
 	}
 }
@@ -301,7 +301,7 @@ FVector AAsteroidSurvivorGameMode::GetSpawnLocationOutsideCamera() const
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	const FVector Center = PlayerPawn ? PlayerPawn->GetActorLocation() : FVector::ZeroVector;
 
-	const float SpawnRadius = 1500.0f;
+	const float SpawnRadius = 2000.0f;
 	const float RandomAngle = FMath::FRandRange(0.0f, 360.0f);
 
 	const FVector Offset(

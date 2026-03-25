@@ -13,6 +13,7 @@ class USpringArmComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
+class AAsteroidSurvivorTrailParticle;
 
 /**
  * The player-controlled spaceship in Asteroid Survivor.
@@ -187,6 +188,10 @@ private:
 	FVector Velocity = FVector::ZeroVector;
 	float FireTimer = 0.0f;
 	bool bFiring = false;
+
+	// Engine trail
+	float TrailSpawnTimer = 0.0f;
+	float TrailSpawnInterval = 0.03f;
 
 	// Invulnerability state
 	bool bInvulnerable = false;
