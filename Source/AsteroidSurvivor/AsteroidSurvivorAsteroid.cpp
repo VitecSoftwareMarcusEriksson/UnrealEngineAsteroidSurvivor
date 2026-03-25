@@ -65,7 +65,7 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = AsteroidMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			FLinearColor BaseColor;
+			FLinearColor BaseColor(0.4f, 0.3f, 0.25f, 1.0f);
 			switch (AsteroidSize)
 			{
 			case EAsteroidSize::Large:
@@ -77,11 +77,14 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 			case EAsteroidSize::Small:
 				BaseColor = FLinearColor(0.5f, 0.35f, 0.25f, 1.0f);
 				break;
+			default:
+				break;
 			}
 			// Random tint for visual diversity
-			BaseColor.R += FMath::FRandRange(-0.06f, 0.06f);
-			BaseColor.G += FMath::FRandRange(-0.06f, 0.06f);
-			BaseColor.B += FMath::FRandRange(-0.06f, 0.06f);
+			constexpr float ColorVariation = 0.06f;
+			BaseColor.R += FMath::FRandRange(-ColorVariation, ColorVariation);
+			BaseColor.G += FMath::FRandRange(-ColorVariation, ColorVariation);
+			BaseColor.B += FMath::FRandRange(-ColorVariation, ColorVariation);
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseColor);
 		}
 	}
