@@ -5,6 +5,7 @@
 #include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorGameMode.h"
 #include "Camera/CameraComponent.h"
+#include "Components/SceneComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -20,9 +21,16 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Root – static mesh representing the ship hull
+	// Invisible root keeps the actor's orientation in the XY play-plane.
+	// The visual mesh is attached as a child with its own rotation so that
+	// GetActorForwardVector() always lies in the XY plane (critical for
+	// top-down movement and projectile direction).
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	SetRootComponent(SceneRoot);
+
+	// Static mesh representing the ship hull
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
-	SetRootComponent(ShipMesh);
+	ShipMesh->SetupAttachment(SceneRoot);
 	ShipMesh->SetSimulatePhysics(false);
 
 	// Set up overlap-based collision so the ship can move freely
@@ -42,13 +50,16 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	{
 		ShipMesh->SetStaticMesh(DefaultShipMesh.Object);
 	}
-	// Rotate so the cone tip points along +X (actor forward)
+	// Rotate so the cone tip points along +X (actor forward).
+	// This is a visual-only rotation on the child mesh; it does NOT
+	// affect the actor's forward vector because SceneRoot is the root.
 	ShipMesh->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));
 	ShipMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.7f));
 
-	// Top-down camera rig
+	// Top-down camera rig – attached to the scene root so it follows
+	// the actor position without being affected by mesh rotation.
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->SetupAttachment(SceneRoot);
 	SpringArm->TargetArmLength = 1400.0f;
 	SpringArm->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	SpringArm->bDoCollisionTest = false;
@@ -74,23 +85,31 @@ void AAsteroidSurvivorShip::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Register Enhanced Input mapping context
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
-		    ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
+	// Register Enhanced Input mapping context.
+	// For the initial default pawn, the controller is typically set by the
+	// time BeginPlay runs. PossessedBy() handles the respawn case.
+	RegisterInputMappingContext();
+}
+
+void AAsteroidSurvivorShip::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// Register the mapping context now that we have a valid controller.
+	// This is essential for respawned pawns where BeginPlay runs before
+	// Possess, so GetController() was null in BeginPlay.
+	RegisterInputMappingContext();
 }
 
 void AAsteroidSurvivorShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Apply drag
-	Velocity *= Drag;
+	// Apply drag (frame-rate independent).
+	// Drag is defined as a per-frame retention factor at 60 FPS.
+	// Normalise it so the behaviour is consistent at any frame rate.
+	const float ReferenceFrameRate = 60.0f;
+	Velocity *= FMath::Pow(Drag, DeltaTime * ReferenceFrameRate);
 
 	// Clamp speed
 	if (Velocity.SizeSquared() > MaxSpeed * MaxSpeed)
@@ -253,6 +272,18 @@ void AAsteroidSurvivorShip::StartInvulnerability()
 	InvulnerabilityTimer = InvulnerabilityDuration;
 	BlinkTimer = BlinkInterval;
 	bBlinkVisible = true;
+}
+
+void AAsteroidSurvivorShip::RegisterInputMappingContext()
+{
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+		    ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		}
+	}
 }
 
 void AAsteroidSurvivorShip::SetupDefaultInputActions()

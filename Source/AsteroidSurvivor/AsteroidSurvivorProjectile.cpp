@@ -38,14 +38,15 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 	{
 		ProjectileMesh->SetStaticMesh(SphereMeshAsset.Object);
 	}
-	ProjectileMesh->SetRelativeScale3D(FVector(0.5f));
+	ProjectileMesh->SetRelativeScale3D(FVector(0.25f));
 
-	// Bright green glow so the projectile is easy to see
+	// Point light for a subtle glow; kept small to avoid illuminating the
+	// ship when the projectile spawns nearby.
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(5000.0f);
+	GlowLight->SetIntensity(3000.0f);
 	GlowLight->SetLightColor(FLinearColor(0.0f, 1.0f, 0.3f));
-	GlowLight->SetAttenuationRadius(250.0f);
+	GlowLight->SetAttenuationRadius(120.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -53,14 +54,23 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Create a bright emissive material so the projectile is clearly visible
+	// Create a bright emissive material so the projectile is clearly visible.
+	// Try several common parameter names to cover different engine materials.
 	if (ProjectileMesh)
 	{
 		UMaterialInstanceDynamic* DynMat = ProjectileMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), FLinearColor(0.0f, 1.0f, 0.3f, 1.0f));
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), FLinearColor(0.0f, 10.0f, 3.0f, 1.0f));
+			const FLinearColor BrightGreen(0.0f, 1.0f, 0.3f, 1.0f);
+			const FLinearColor EmissiveGreen(0.0f, 10.0f, 3.0f, 1.0f);
+
+			// BasicShapeMaterial uses "Color"
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BrightGreen);
+			// Standard PBR materials use "BaseColor"
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BrightGreen);
+			// Emissive parameters (various naming conventions)
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveGreen);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveGreen);
 		}
 	}
 }
