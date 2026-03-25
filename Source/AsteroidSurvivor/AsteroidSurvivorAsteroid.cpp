@@ -9,13 +9,17 @@
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
 
+// ---------------------------------------------------------------------------
+// Constructor
+// ---------------------------------------------------------------------------
+
 AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
+	// --- Collision sphere (root) ---
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
-	// Use overlap-based collision so projectiles, ship, and other asteroids can detect hits
 	CollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CollisionSphere->SetCollisionObjectType(ECC_WorldDynamic);
 	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -29,6 +33,7 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	CollisionSphere->OnComponentBeginOverlap.AddDynamic(
 		this, &AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin);
 
+	// --- Visual mesh ---
 	AsteroidMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AsteroidMesh"));
 	AsteroidMesh->SetupAttachment(RootComponent);
 	AsteroidMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -41,112 +46,117 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 		AsteroidMesh->SetStaticMesh(SphereMesh.Object);
 	}
 
-	// Random multi-axis tumble for a more natural look
-	TumbleRate = FRotator(
-		FMath::FRandRange(-60.0f, 60.0f),
-		FMath::FRandRange(30.0f, 120.0f),
-		FMath::FRandRange(-40.0f, 40.0f)
-	);
+	// Random yaw spin for visual interest (Z-axis only keeps shape round
+	// when viewed from the top-down camera).
+	YawSpinRate = FMath::FRandRange(-120.0f, 120.0f);
 }
+
+// ---------------------------------------------------------------------------
+// BeginPlay
+// ---------------------------------------------------------------------------
 
 void AAsteroidSurvivorAsteroid::BeginPlay()
 {
 	Super::BeginPlay();
+
 	ApplySizeParameters();
 
-	// Default class to self if not assigned
+	// Fall back to own class when spawning children.
 	if (!AsteroidClass)
 	{
 		AsteroidClass = GetClass();
 	}
 
-	// Defensive: ensure DriftDirection is a valid unit vector.
-	// A zero direction means the asteroid would never move.
+	// Ensure a valid drift direction.
 	if (DriftDirection.IsNearlyZero())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Asteroid %s has zero DriftDirection, assigning default"), *GetName());
 		DriftDirection = FVector(1.0f, 0.0f, 0.0f);
 	}
 	DriftDirection = DriftDirection.GetSafeNormal();
 
-	// Defensive: ensure Speed is positive
+	// Keep everything on the XY plane.
+	DriftDirection.Z = 0.0f;
+	DriftDirection = DriftDirection.GetSafeNormal();
+
+	// Safety: speed must be positive.
 	if (Speed <= 0.0f)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Asteroid %s has zero/negative Speed (%f), resetting"), *GetName(), Speed);
 		Speed = 150.0f;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Asteroid %s BeginPlay: Speed=%f Dir=(%f,%f,%f) Size=%d"),
-		*GetName(), Speed, DriftDirection.X, DriftDirection.Y, DriftDirection.Z, static_cast<int32>(AsteroidSize));
-
-	// Brief immunity after spawning to prevent instant collision with siblings
+	// Brief immunity so siblings spawned at the same spot don't immediately
+	// overlap-collide with each other.
 	SpawnImmunityTimer = 0.3f;
 
-	// Apply a rocky material with per-asteroid color variation.
-	// Use bright HDR emissive values so asteroids are clearly visible in space,
-	// and set multiple parameter names for material compatibility.
+	// --- Emissive material per size ---
 	if (AsteroidMesh)
 	{
 		UMaterialInstanceDynamic* DynMat = AsteroidMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			FLinearColor BaseColor(2.0f, 1.5f, 1.0f, 1.0f);
+			FLinearColor Color;
 			switch (AsteroidSize)
 			{
 			case EAsteroidSize::Large:
-				BaseColor = FLinearColor(2.5f, 1.6f, 1.0f, 1.0f);
+				Color = FLinearColor(2.5f, 1.6f, 1.0f, 1.0f);
 				break;
 			case EAsteroidSize::Medium:
-				BaseColor = FLinearColor(2.0f, 1.4f, 0.8f, 1.0f);
+				Color = FLinearColor(2.0f, 1.4f, 0.8f, 1.0f);
 				break;
 			case EAsteroidSize::Small:
-				BaseColor = FLinearColor(3.0f, 2.0f, 1.2f, 1.0f);
-				break;
-			default:
+				Color = FLinearColor(3.0f, 2.0f, 1.2f, 1.0f);
 				break;
 			}
-			// Random tint for visual diversity
-			constexpr float ColorVariation = 0.3f;
-			BaseColor.R += FMath::FRandRange(-ColorVariation, ColorVariation);
-			BaseColor.G += FMath::FRandRange(-ColorVariation, ColorVariation);
-			BaseColor.B += FMath::FRandRange(-ColorVariation, ColorVariation);
-			// Set multiple parameter names for material compatibility
-			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), BaseColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), BaseColor);
+
+			// Slight random tint for visual variety.
+			constexpr float V = 0.3f;
+			Color.R += FMath::FRandRange(-V, V);
+			Color.G += FMath::FRandRange(-V, V);
+			Color.B += FMath::FRandRange(-V, V);
+
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), Color);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), Color);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), Color);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), Color);
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Tick – movement & visual spin
+// ---------------------------------------------------------------------------
 
 void AAsteroidSurvivorAsteroid::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Count down spawn immunity
+	// Count down spawn immunity.
 	if (SpawnImmunityTimer > 0.0f)
 	{
 		SpawnImmunityTimer -= DeltaTime;
 	}
 
-	// Drift – frame-rate independent movement in world space.
-	// Compute new location explicitly to guarantee movement occurs.
-	const FVector DeltaMove = DriftDirection * Speed * DeltaTime;
-	const FVector NewLocation = GetActorLocation() + DeltaMove;
-	SetActorLocation(NewLocation, /*bSweep=*/false);
+	// --- Drift movement (world-space, XY plane only) ---
+	const FVector Delta = DriftDirection * Speed * DeltaTime;
+	SetActorLocation(GetActorLocation() + Delta, false);
 
-	// Multi-axis tumble
-	AddActorLocalRotation(TumbleRate * DeltaTime);
+	// --- Yaw-only visual spin (keeps the sphere round from top-down view) ---
+	FRotator Spin(0.0f, YawSpinRate * DeltaTime, 0.0f);
+	AsteroidMesh->AddLocalRotation(Spin);
 
-	// Despawn if too far from the player (spawn border is at ~2200cm from the ship)
+	// --- Despawn when too far from the player ---
 	constexpr float DespawnDistance = 5000.0f;
 	APawn* PlayerShip = UGameplayStatics::GetPlayerPawn(this, 0);
-	FVector RefPos = PlayerShip ? PlayerShip->GetActorLocation() : FVector::ZeroVector;
+	const FVector RefPos = PlayerShip ? PlayerShip->GetActorLocation() : FVector::ZeroVector;
 	if (FVector::DistSquared(GetActorLocation(), RefPos) > DespawnDistance * DespawnDistance)
 	{
 		Destroy();
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Damage & destruction
+// ---------------------------------------------------------------------------
 
 void AAsteroidSurvivorAsteroid::TakeDamage_Asteroid(int32 DamageAmount)
 {
@@ -159,20 +169,25 @@ void AAsteroidSurvivorAsteroid::TakeDamage_Asteroid(int32 DamageAmount)
 	}
 }
 
-void AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin(UPrimitiveComponent* OverlappedComp,
-                                                        AActor* OtherActor,
-                                                        UPrimitiveComponent* OtherComp,
-                                                        int32 OtherBodyIndex,
-                                                        bool bFromSweep,
-                                                        const FHitResult& SweepResult)
+// ---------------------------------------------------------------------------
+// Overlap callback (asteroid-asteroid collisions)
+// ---------------------------------------------------------------------------
+
+void AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
 {
 	if (!OtherActor || bExploding || SpawnImmunityTimer > 0.0f)
 	{
 		return;
 	}
 
-	AAsteroidSurvivorAsteroid* OtherAsteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor);
-	if (OtherAsteroid && !OtherAsteroid->bExploding && OtherAsteroid->SpawnImmunityTimer <= 0.0f)
+	AAsteroidSurvivorAsteroid* Other = Cast<AAsteroidSurvivorAsteroid>(OtherActor);
+	if (Other && !Other->bExploding && Other->SpawnImmunityTimer <= 0.0f)
 	{
 		bExploding = true;
 		ExplodeIntoFragments();
@@ -181,50 +196,54 @@ void AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin(UPrimitiveComponent* Over
 	}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Apply per-size parameters
+// ---------------------------------------------------------------------------
 
 void AAsteroidSurvivorAsteroid::ApplySizeParameters()
 {
-	float BaseRadius = 0.0f;
+	float Radius = 0.0f;
 
 	switch (AsteroidSize)
 	{
 	case EAsteroidSize::Large:
-		BaseRadius = LargeRadius;
-		Speed = LargeSpeed;
-		Health = LargeHealth;
+		Radius     = LargeRadius;
+		Speed      = LargeSpeed;
+		Health     = LargeHealth;
 		ScoreValue = LargeScore;
 		break;
-
 	case EAsteroidSize::Medium:
-		BaseRadius = MediumRadius;
-		Speed = MediumSpeed;
-		Health = MediumHealth;
+		Radius     = MediumRadius;
+		Speed      = MediumSpeed;
+		Health     = MediumHealth;
 		ScoreValue = MediumScore;
 		break;
-
 	case EAsteroidSize::Small:
-		BaseRadius = SmallRadius;
-		Speed = SmallSpeed;
-		Health = SmallHealth;
+		Radius     = SmallRadius;
+		Speed      = SmallSpeed;
+		Health     = SmallHealth;
 		ScoreValue = SmallScore;
 		break;
 	}
 
-	CollisionSphere->SetSphereRadius(BaseRadius);
+	CollisionSphere->SetSphereRadius(Radius);
 
-	// Apply wave-based speed multiplier
+	// Apply wave-based speed multiplier.
 	Speed *= SpeedMultiplier;
 
-	// Uniform scaling to keep asteroids perfectly round
-	float BaseScale = BaseRadius / 50.0f;
-	AsteroidMesh->SetRelativeScale3D(FVector(BaseScale));
+	// Uniform scale so the sphere remains perfectly round.
+	// Engine BasicShapes/Sphere has a 50 cm default radius.
+	const float UniformScale = Radius / 50.0f;
+	AsteroidMesh->SetRelativeScale3D(FVector(UniformScale, UniformScale, UniformScale));
 }
+
+// ---------------------------------------------------------------------------
+// Split – called when a projectile destroys the asteroid
+// ---------------------------------------------------------------------------
 
 void AAsteroidSurvivorAsteroid::Split()
 {
 	EAsteroidSize ChildSize;
-
 	switch (AsteroidSize)
 	{
 	case EAsteroidSize::Large:
@@ -234,37 +253,41 @@ void AAsteroidSurvivorAsteroid::Split()
 		ChildSize = EAsteroidSize::Small;
 		break;
 	default:
-		return; // Small asteroids do not split
+		return; // Small asteroids do not split.
 	}
 
-	const int32 NumChildren = 2;
-	for (int32 i = 0; i < NumChildren; i++)
+	for (int32 i = 0; i < 2; ++i)
 	{
-		// Spread the two children at ±45° from the original drift
-		float AngleOffset = (i == 0) ? 45.0f : -45.0f;
-		FVector ChildDir = DriftDirection.RotateAngleAxis(AngleOffset, FVector::UpVector);
-		ChildDir.Normalize();
+		// Two children at ±45° from the original drift direction.
+		const float Angle = (i == 0) ? 45.0f : -45.0f;
+		FVector ChildDir = DriftDirection.RotateAngleAxis(Angle, FVector::UpVector);
+		ChildDir.Z = 0.0f;
+		ChildDir = ChildDir.GetSafeNormal();
 
-		FTransform ChildTransform(GetActorRotation(), GetActorLocation());
+		FTransform SpawnTransform(FRotator::ZeroRotator, GetActorLocation());
 
-		AAsteroidSurvivorAsteroid* Child = GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
-			AsteroidClass, ChildTransform, nullptr, nullptr,
-			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		AAsteroidSurvivorAsteroid* Child =
+			GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
+				AsteroidClass, SpawnTransform, nullptr, nullptr,
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
 		if (Child)
 		{
-			Child->AsteroidSize = ChildSize;
+			Child->AsteroidSize    = ChildSize;
 			Child->SpeedMultiplier = SpeedMultiplier;
-			Child->DriftDirection = ChildDir;
-			UGameplayStatics::FinishSpawningActor(Child, ChildTransform);
+			Child->DriftDirection  = ChildDir;
+			UGameplayStatics::FinishSpawningActor(Child, SpawnTransform);
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// ExplodeIntoFragments – called on asteroid-asteroid collision
+// ---------------------------------------------------------------------------
 
 void AAsteroidSurvivorAsteroid::ExplodeIntoFragments()
 {
 	EAsteroidSize ChildSize;
-
 	switch (AsteroidSize)
 	{
 	case EAsteroidSize::Large:
@@ -274,40 +297,45 @@ void AAsteroidSurvivorAsteroid::ExplodeIntoFragments()
 		ChildSize = EAsteroidSize::Small;
 		break;
 	default:
-		return; // Small asteroids produce no fragments
+		return; // Small asteroids produce no fragments.
 	}
 
-	// Spawn 2-4 fragments in random directions
 	const int32 NumFragments = FMath::RandRange(2, 4);
-	for (int32 i = 0; i < NumFragments; i++)
+	for (int32 i = 0; i < NumFragments; ++i)
 	{
-		float RandomAngle = FMath::FRandRange(0.0f, 360.0f);
+		const float RandomAngle = FMath::FRandRange(0.0f, 360.0f);
 		FVector FragDir = FVector(1.0f, 0.0f, 0.0f).RotateAngleAxis(RandomAngle, FVector::UpVector);
-		FragDir.Normalize();
+		FragDir.Z = 0.0f;
+		FragDir = FragDir.GetSafeNormal();
 
-		// Offset spawn position slightly to avoid immediate re-collision
-		constexpr float FragmentSpawnOffset = 60.0f;
-		FVector SpawnPos = GetActorLocation() + FragDir * FragmentSpawnOffset;
-		FTransform ChildTransform(GetActorRotation(), SpawnPos);
+		// Offset slightly so fragments don't immediately re-collide.
+		constexpr float SpawnOffset = 60.0f;
+		const FVector SpawnPos = GetActorLocation() + FragDir * SpawnOffset;
+		FTransform SpawnTransform(FRotator::ZeroRotator, SpawnPos);
 
-		AAsteroidSurvivorAsteroid* Child = GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
-			AsteroidClass, ChildTransform, nullptr, nullptr,
-			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		AAsteroidSurvivorAsteroid* Child =
+			GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
+				AsteroidClass, SpawnTransform, nullptr, nullptr,
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
 		if (Child)
 		{
-			Child->AsteroidSize = ChildSize;
+			Child->AsteroidSize    = ChildSize;
 			Child->SpeedMultiplier = SpeedMultiplier;
-			Child->DriftDirection = FragDir;
-			UGameplayStatics::FinishSpawningActor(Child, ChildTransform);
+			Child->DriftDirection  = FragDir;
+			UGameplayStatics::FinishSpawningActor(Child, SpawnTransform);
 		}
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Notify game mode of destruction (score)
+// ---------------------------------------------------------------------------
+
 void AAsteroidSurvivorAsteroid::NotifyGameMode() const
 {
 	if (AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
-	    UGameplayStatics::GetGameMode(this)))
+		UGameplayStatics::GetGameMode(this)))
 	{
 		GM->OnAsteroidDestroyed(ScoreValue);
 	}

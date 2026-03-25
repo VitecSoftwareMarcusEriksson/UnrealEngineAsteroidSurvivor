@@ -8,8 +8,8 @@
 #include "AsteroidSurvivorAsteroidSpawner.generated.h"
 
 /**
- * Manages wave-based asteroid spawning.
- * Asteroids are spawned just outside the visible play area and drift inward.
+ * Spawns asteroids in waves just outside the camera view so they drift inward
+ * toward the player.  Between waves, continuous spawning keeps the field busy.
  */
 UCLASS()
 class ASTEROIDSURVIVOR_API AAsteroidSurvivorAsteroidSpawner : public AActor
@@ -21,50 +21,47 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	/** Called by the game mode to begin a new wave */
+	/** Begin a new wave – called by the game mode. */
 	void StartWave(int32 WaveNumber);
 
-	/** Returns the number of asteroids still alive */
+	/** Count every living asteroid in the world (including split fragments). */
 	int32 GetActiveAsteroidCount() const;
 
 protected:
 	virtual void BeginPlay() override;
 
-	/** Class to spawn – set this in your Blueprint subclass */
+	/** Asteroid class to spawn (defaults to the C++ base class). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
 	TSubclassOf<AAsteroidSurvivorAsteroid> AsteroidClass;
 
-	/** Half-extent of the spawn zone border (cm) */
+	/** Half-extent of the rectangular spawn border around the player (cm). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
 	float SpawnBorderHalfExtent = 2200.0f;
 
-	/** Number of large asteroids spawned per wave (scales with wave number) */
+	/** Large asteroids spawned at wave start (wave 1). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
 	int32 BaseAsteroidsPerWave = 8;
 
-	/** How many additional asteroids each new wave adds */
+	/** Extra large asteroids added per wave after wave 1. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
 	int32 AsteroidsPerWaveIncrement = 3;
 
-	/** Speed multiplier applied to asteroid drift each wave */
+	/** Per-wave speed multiplier increment (0.1 → +10 % per wave). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
 	float SpeedScalePerWave = 0.1f;
 
-	/** Minimum interval between continuous asteroid spawns (seconds) */
+	/** Minimum seconds between continuous spawns. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
 	float ContinuousSpawnMinInterval = 1.5f;
 
-	/** Maximum interval between continuous asteroid spawns (seconds) */
+	/** Maximum seconds between continuous spawns. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
 	float ContinuousSpawnMaxInterval = 4.0f;
 
 private:
-	UPROPERTY()
-	TArray<AAsteroidSurvivorAsteroid*> ActiveAsteroids;
-
 	float ContinuousSpawnTimer = 0.0f;
 	int32 CurrentSpeedWave = 1;
 
-	void SpawnAsteroid(EAsteroidSize Size, float SpeedMultiplier);
-	void CleanDestroyedRefs();
+	/** Spawn a single asteroid of the given size on a random screen edge. */
+	void SpawnAsteroid(EAsteroidSize Size, float SpeedMult);
 };
