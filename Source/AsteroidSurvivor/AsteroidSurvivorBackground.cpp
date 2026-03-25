@@ -88,10 +88,9 @@ void AAsteroidSurvivorBackground::Tick(float DeltaTime)
 
 	// Space dust gets a subtle animated drift on top of parallax scrolling
 	DustDriftTime += DeltaTime;
-	constexpr float DustDriftSpeed = 15.0f;
 	FVector DustAnimOffset(
-		FMath::Sin(DustDriftTime * 0.3f) * DustDriftSpeed,
-		FMath::Cos(DustDriftTime * 0.2f) * DustDriftSpeed,
+		FMath::Sin(DustDriftTime * DustDriftFrequencyX) * DustDriftSpeed,
+		FMath::Cos(DustDriftTime * DustDriftFrequencyY) * DustDriftSpeed,
 		0.0f
 	);
 	UpdateLayerPosition(SpaceDustISM, DustParallax, ShipPos + DustAnimOffset, -400.0f);

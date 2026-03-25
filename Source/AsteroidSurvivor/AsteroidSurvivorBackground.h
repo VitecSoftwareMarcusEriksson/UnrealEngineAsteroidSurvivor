@@ -51,6 +51,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Background")
 	float NebulaParallax = 0.02f;
 
+	/** Speed of the space dust layer's subtle drift animation */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Background|SpaceDust")
+	float DustDriftSpeed = 15.0f;
+
+	/** Horizontal oscillation frequency of the space dust drift */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Background|SpaceDust")
+	float DustDriftFrequencyX = 0.3f;
+
+	/** Vertical oscillation frequency of the space dust drift */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Background|SpaceDust")
+	float DustDriftFrequencyY = 0.2f;
+
 private:
 	UPROPERTY()
 	UInstancedStaticMeshComponent* FarStarsISM = nullptr;
