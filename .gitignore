@@ -33,3 +33,4 @@ Saved/
 # OS-specific
 .DS_Store
 Thumbs.db
+/Rebuild.bat
