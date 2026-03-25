@@ -6,6 +6,7 @@
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorPlayerController.h"
 #include "AsteroidSurvivorHUD.h"
+#include "WaveManager.h"
 #include "Engine/DirectionalLight.h"
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
@@ -31,11 +32,21 @@ void AAsteroidSurvivorGameMode::BeginPlay()
 	// Spawn parallax scrolling background
 	Background = GetWorld()->SpawnActor<AAsteroidSurvivorBackground>(
 		AAsteroidSurvivorBackground::StaticClass());
+
+	// Spawn the wave manager that handles enemy waves, boss spawns, and the global timer
+	WaveManagerActor = GetWorld()->SpawnActor<AWaveManager>(
+		AWaveManager::StaticClass());
 }
 
 void AAsteroidSurvivorGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	// Pause/resume the wave manager based on game state
+	if (WaveManagerActor)
+	{
+		WaveManagerActor->SetSpawningPaused(bGameOver || bSelectingUpgrade);
+	}
 
 	// Asteroid spawning (paused during upgrade selection)
 	if (!bGameOver && !bSelectingUpgrade)
@@ -79,6 +90,26 @@ void AAsteroidSurvivorGameMode::AddThorium(int32 Amount)
 		CurrentLevel++;
 		ThoriumForNextLevel *= 2;
 		PresentUpgradeOptions();
+	}
+}
+
+void AAsteroidSurvivorGameMode::AddScrap(int32 Amount)
+{
+	if (bGameOver)
+	{
+		return;
+	}
+
+	CurrentScrap += Amount;
+
+	// Scrap auto-upgrades: every 25 scrap collected enhances all existing
+	// weapons on the player ship by increasing the base blaster damage.
+	// The ship handles the actual stat changes.
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(PlayerPawn);
+	if (Ship)
+	{
+		Ship->OnScrapCollected(CurrentScrap);
 	}
 }
 

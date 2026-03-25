@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "WeaponUpgradePickup.h"
 #include "AsteroidSurvivorShip.generated.h"
 
 class USphereComponent;
@@ -68,6 +69,19 @@ public:
 
 	/** Apply an upgrade that increases Thorium pull radius. */
 	void UpgradeThoriumMagnet(float Multiplier);
+
+	// ── Weapon arsenal system ───────────────────────────────────────────────
+	/** Add a new weapon or upgrade an existing one. Called when a weapon pickup is collected. */
+	void AddOrUpgradeWeapon(EWeaponType Type);
+
+	/** Called by the GameMode when scrap is collected, to auto-enhance base weapons. */
+	void OnScrapCollected(int32 TotalScrap);
+
+	/** Returns the current weapon loadout (for HUD display). */
+	const TMap<EWeaponType, int32>& GetWeaponArsenal() const { return WeaponArsenal; }
+
+	/** Returns the current base blaster level (for HUD display). */
+	int32 GetBlasterLevel() const { return BlasterLevel; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -215,4 +229,26 @@ private:
 
 	/** Registers the Enhanced Input mapping context with the local player subsystem. */
 	void RegisterInputMappingContext();
+
+	// ── Weapon arsenal ──────────────────────────────────────────────────────
+	/** Map of weapon type → upgrade level (1 = base, 2 = enhanced, 3 = max). */
+	TMap<EWeaponType, int32> WeaponArsenal;
+
+	/** Base blaster enhancement level. Increases every 25 scrap collected. */
+	int32 BlasterLevel = 1;
+
+	/** The last scrap threshold that triggered a blaster upgrade. */
+	int32 LastScrapThreshold = 0;
+
+	/** Fires extra weapon projectiles based on the current arsenal. */
+	void FireExtraWeapons();
+
+	/** Fires spread-shot projectiles (fan pattern). */
+	void FireSpreadShot(int32 Level);
+
+	/** Fires a rear turret projectile (backward). */
+	void FireRearTurret(int32 Level);
+
+	/** Fires a homing missile toward the nearest enemy. */
+	void FireHomingMissile(int32 Level);
 };

@@ -9,6 +9,7 @@
 class AAsteroidSurvivorBackground;
 class AAsteroidSurvivorAsteroid;
 class AAsteroidSurvivorShip;
+class AWaveManager;
 enum class EAsteroidSize : uint8;
 
 /** Types of upgrades the player can choose on level-up. */
@@ -65,6 +66,9 @@ public:
 	/** Add Thorium energy. Triggers level-up when threshold is reached. */
 	void AddThorium(int32 Amount);
 
+	/** Add scrap collected from destroyed enemies. */
+	void AddScrap(int32 Amount);
+
 	/** Player selected an upgrade option (index 0–2). */
 	void SelectUpgrade(int32 Index);
 
@@ -76,8 +80,13 @@ public:
 	int32 GetCurrentThorium() const { return CurrentThorium; }
 	int32 GetThoriumForNextLevel() const { return ThoriumForNextLevel; }
 
+	int32 GetCurrentScrap() const { return CurrentScrap; }
+
 	bool IsSelectingUpgrade() const { return bSelectingUpgrade; }
 	const TArray<FUpgradeOption>& GetCurrentUpgradeOptions() const { return CurrentUpgradeOptions; }
+
+	/** Returns the WaveManager actor (used by HUD for timer/boss info). */
+	AWaveManager* GetWaveManager() const { return WaveManagerActor; }
 
 protected:
 	// ── Thorium / leveling ─────────────────────────────────────────────────
@@ -112,12 +121,19 @@ private:
 	int32 CurrentThorium = 0;
 	int32 ThoriumForNextLevel = 50;
 
+	// Scrap currency (collected from enemy ships)
+	int32 CurrentScrap = 0;
+
 	// Upgrade selection
 	bool bSelectingUpgrade = false;
 	TArray<FUpgradeOption> CurrentUpgradeOptions;
 
 	UPROPERTY()
 	AAsteroidSurvivorBackground* Background = nullptr;
+
+	/** The wave manager that handles enemy spawning and the global timer. */
+	UPROPERTY()
+	AWaveManager* WaveManagerActor = nullptr;
 
 	float AsteroidSpawnTimer = 0.0f;
 

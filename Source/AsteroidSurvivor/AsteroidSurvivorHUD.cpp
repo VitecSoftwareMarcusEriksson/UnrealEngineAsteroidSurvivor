@@ -3,6 +3,9 @@
 #include "AsteroidSurvivorHUD.h"
 #include "AsteroidSurvivorGameMode.h"
 #include "AsteroidSurvivorShip.h"
+#include "WaveManager.h"
+#include "WeaponUpgradePickup.h"
+#include "EnemyShipBase.h"
 #include "Engine/Canvas.h"
 #include "Engine/Font.h"
 #include "Kismet/GameplayStatics.h"
@@ -33,6 +36,34 @@ void AAsteroidSurvivorHUD::DrawHUD()
 
 	const float W = Canvas->SizeX;
 	const float H = Canvas->SizeY;
+
+	// ── Global Timer (top centre) ───────────────────────────────────────────
+	const AWaveManager* WM = GM->GetWaveManager();
+	if (WM)
+	{
+		// Elapsed time
+		FString TimerText = FString::Printf(TEXT("TIME: %s"), *FormatTime(WM->GetElapsedTime()));
+		float TW_Timer, TH_Timer;
+		GetTextSize(TimerText, TW_Timer, TH_Timer, HUDFont, 2.0f);
+		DrawText(TimerText, FColor::White, (W - TW_Timer) * 0.5f, 10.0f, HUDFont, 2.0f);
+
+		// Wave number
+		FString WaveText = FString::Printf(TEXT("WAVE: %d"), WM->GetCurrentWave());
+		float WW, WH;
+		GetTextSize(WaveText, WW, WH, HUDFont, 1.2f);
+		DrawText(WaveText, FColor(200, 200, 255), (W - WW) * 0.5f, 10.0f + TH_Timer + 2.0f, HUDFont, 1.2f);
+
+		// Boss countdown
+		float BossCountdown = WM->GetBossCountdown();
+		if (BossCountdown > 0.0f && !WM->GetActiveBoss())
+		{
+			FString BossText = FString::Printf(TEXT("BOSS IN: %s"), *FormatTime(BossCountdown));
+			float BW, BH;
+			GetTextSize(BossText, BW, BH, HUDFont, 1.0f);
+			DrawText(BossText, FColor(255, 100, 100),
+			         (W - BW) * 0.5f, 10.0f + TH_Timer + WH + 4.0f, HUDFont, 1.0f);
+		}
+	}
 
 	// ── Score ────────────────────────────────────────────────────────────────
 	FString ScoreText = FString::Printf(TEXT("SCORE: %d"), GM->GetScore());
@@ -109,6 +140,54 @@ void AAsteroidSurvivorHUD::DrawHUD()
 		GM->GetCurrentThorium(), GM->GetThoriumForNextLevel());
 	DrawText(XPText, FColor::White, BarX + 35.0f, 114.0f, HUDFont, 0.8f);
 
+	// ── Scrap counter ───────────────────────────────────────────────────────
+	FString ScrapText = FString::Printf(TEXT("SCRAP: %d"), GM->GetCurrentScrap());
+	DrawText(ScrapText, FColor(255, 200, 50), BarX, 142.0f, HUDFont, 1.2f);
+
+	// ── Weapon arsenal (bottom-left) ────────────────────────────────────────
+	if (Ship)
+	{
+		float WeaponY = H - 120.0f;
+		FString BlasterText = FString::Printf(TEXT("Blaster Lv.%d"), Ship->GetBlasterLevel());
+		DrawText(BlasterText, FColor(100, 255, 100), 20.0f, WeaponY, HUDFont, 0.9f);
+		WeaponY += 20.0f;
+
+		for (const auto& WeaponEntry : Ship->GetWeaponArsenal())
+		{
+			FString WeaponName = AWeaponUpgradePickup::GetWeaponDisplayName(WeaponEntry.Key);
+			FString WeaponText = FString::Printf(TEXT("%s Lv.%d"), *WeaponName, WeaponEntry.Value);
+			DrawText(WeaponText, FColor(150, 200, 255), 20.0f, WeaponY, HUDFont, 0.9f);
+			WeaponY += 20.0f;
+		}
+	}
+
+	// ── Boss health bar (top of screen, below timer) ────────────────────────
+	if (WM)
+	{
+		AEnemyShipBase* Boss = WM->GetActiveBoss();
+		if (Boss && IsValid(Boss) && Boss->GetMaxHealth() > 0.0f)
+		{
+			const float BossBarWidth = 400.0f;
+			const float BossBarHeight = 20.0f;
+			const float BossBarX = (W - BossBarWidth) * 0.5f;
+			const float BossBarY = 80.0f;
+
+			DrawText(TEXT("BOSS"), FColor(255, 50, 50),
+			         BossBarX - 60.0f, BossBarY - 2.0f, HUDFont, 1.2f);
+
+			const float BossFraction = Boss->GetCurrentHealth() / Boss->GetMaxHealth();
+			DrawProgressBar(BossBarX, BossBarY, BossBarWidth, BossBarHeight,
+			                BossFraction,
+			                FLinearColor(1.0f, 0.15f, 0.3f),
+			                FLinearColor(0.2f, 0.05f, 0.1f, 0.8f));
+
+			FString BossHPText = FString::Printf(TEXT("%d / %d"),
+				FMath::CeilToInt(Boss->GetCurrentHealth()),
+				FMath::CeilToInt(Boss->GetMaxHealth()));
+			DrawText(BossHPText, FColor::White, BossBarX + 5.0f, BossBarY - 2.0f, HUDFont, 0.9f);
+		}
+	}
+
 	// ── Upgrade selection overlay ───────────────────────────────────────────
 	if (GM->IsSelectingUpgrade())
 	{
@@ -171,6 +250,14 @@ void AAsteroidSurvivorHUD::DrawHUD()
 		         (W - RW) * 0.5f, (H - GOHeight) * 0.5f + GOHeight + 20.0f,
 		         HUDFont, 1.5f);
 	}
+}
+
+FString AAsteroidSurvivorHUD::FormatTime(float Seconds)
+{
+	const int32 TotalSeconds = FMath::FloorToInt(Seconds);
+	const int32 Minutes = TotalSeconds / 60;
+	const int32 Secs = TotalSeconds % 60;
+	return FString::Printf(TEXT("%02d:%02d"), Minutes, Secs);
 }
 
 void AAsteroidSurvivorHUD::DrawProgressBar(float X, float Y, float Width, float Height,
