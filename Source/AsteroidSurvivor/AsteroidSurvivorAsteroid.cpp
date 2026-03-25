@@ -66,6 +66,22 @@ void AAsteroidSurvivorAsteroid::TakeDamage_Asteroid(int32 DamageAmount)
 	}
 }
 
+void AAsteroidSurvivorAsteroid::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other,
+                                           UPrimitiveComponent* OtherComp, bool bSelfMoved,
+                                           FVector HitLocation, FVector HitNormal,
+                                           FVector NormalImpulse, const FHitResult& Hit)
+{
+	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
+
+	if (Other && Other->IsA<AAsteroidSurvivorAsteroid>() && !bExploding)
+	{
+		bExploding = true;
+		ExplodeIntoFragments();
+		NotifyGameMode();
+		Destroy();
+	}
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 void AAsteroidSurvivorAsteroid::ApplySizeParameters()
@@ -132,6 +148,47 @@ void AAsteroidSurvivorAsteroid::Split()
 		{
 			Child->AsteroidSize = ChildSize;
 			Child->DriftDirection = ChildDir;
+			UGameplayStatics::FinishSpawningActor(Child, ChildTransform);
+		}
+	}
+}
+
+void AAsteroidSurvivorAsteroid::ExplodeIntoFragments()
+{
+	EAsteroidSize ChildSize;
+
+	switch (AsteroidSize)
+	{
+	case EAsteroidSize::Large:
+		ChildSize = EAsteroidSize::Medium;
+		break;
+	case EAsteroidSize::Medium:
+		ChildSize = EAsteroidSize::Small;
+		break;
+	default:
+		return; // Small asteroids produce no fragments
+	}
+
+	// Spawn 2-4 fragments in random directions
+	const int32 NumFragments = FMath::RandRange(2, 4);
+	for (int32 i = 0; i < NumFragments; i++)
+	{
+		float RandomAngle = FMath::FRandRange(0.0f, 360.0f);
+		FVector FragDir = FVector(1.0f, 0.0f, 0.0f).RotateAngleAxis(RandomAngle, FVector::UpVector);
+		FragDir.Normalize();
+
+		// Offset spawn position slightly to avoid immediate re-collision
+		FVector SpawnPos = GetActorLocation() + FragDir * 60.0f;
+		FTransform ChildTransform(GetActorRotation(), SpawnPos);
+
+		AAsteroidSurvivorAsteroid* Child = GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
+			AsteroidClass, ChildTransform, nullptr, nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
+		if (Child)
+		{
+			Child->AsteroidSize = ChildSize;
+			Child->DriftDirection = FragDir;
 			UGameplayStatics::FinishSpawningActor(Child, ChildTransform);
 		}
 	}

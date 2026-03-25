@@ -3,6 +3,7 @@
 #include "AsteroidSurvivorAsteroidSpawner.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
+#include "EngineUtils.h"
 
 AAsteroidSurvivorAsteroidSpawner::AAsteroidSurvivorAsteroidSpawner()
 {
@@ -40,10 +41,11 @@ void AAsteroidSurvivorAsteroidSpawner::StartWave(int32 WaveNumber)
 
 int32 AAsteroidSurvivorAsteroidSpawner::GetActiveAsteroidCount() const
 {
+	// Count ALL asteroids in the world, including split/exploded fragments
 	int32 Count = 0;
-	for (const AAsteroidSurvivorAsteroid* A : ActiveAsteroids)
+	for (TActorIterator<AAsteroidSurvivorAsteroid> It(GetWorld()); It; ++It)
 	{
-		if (IsValid(A))
+		if (IsValid(*It))
 		{
 			Count++;
 		}

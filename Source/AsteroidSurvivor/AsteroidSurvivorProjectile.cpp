@@ -4,6 +4,7 @@
 #include "AsteroidSurvivorAsteroid.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
 AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
@@ -30,7 +31,15 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 	{
 		ProjectileMesh->SetStaticMesh(SphereMeshAsset.Object);
 	}
-	ProjectileMesh->SetRelativeScale3D(FVector(0.15f));
+	ProjectileMesh->SetRelativeScale3D(FVector(0.25f));
+
+	// Bright green glow so the projectile is easy to see
+	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
+	GlowLight->SetupAttachment(RootComponent);
+	GlowLight->SetIntensity(3000.0f);
+	GlowLight->SetLightColor(FLinearColor(0.0f, 1.0f, 0.3f));
+	GlowLight->SetAttenuationRadius(150.0f);
+	GlowLight->SetCastShadows(false);
 }
 
 void AAsteroidSurvivorProjectile::BeginPlay()
