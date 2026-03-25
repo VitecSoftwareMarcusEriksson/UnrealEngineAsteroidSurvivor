@@ -25,7 +25,14 @@ void AStandardEnemyShip::UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* 
 	{
 		// Gradually turn toward the player – limited by TurnRate
 		const FVector ToPlayer = (PlayerShip->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-		const FVector DesiredDir = ToPlayer;
+		FVector DesiredDir = ToPlayer;
+
+		// Blend in asteroid avoidance steering
+		const FVector Avoidance = ComputeAsteroidAvoidance();
+		if (!Avoidance.IsNearlyZero())
+		{
+			DesiredDir = (DesiredDir + Avoidance).GetSafeNormal();
+		}
 
 		// Use angular interpolation to smoothly turn
 		const float MaxAngleThisFrame = TurnRate * DeltaTime;

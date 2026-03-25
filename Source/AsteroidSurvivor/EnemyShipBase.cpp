@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemyShipBase.h"
+#include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorProjectile.h"
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorGameMode.h"
@@ -124,6 +125,42 @@ void AEnemyShipBase::UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* Play
 	SetActorLocation(NewLocation, true);
 }
 
+FVector AEnemyShipBase::ComputeAsteroidAvoidance() const
+{
+	if (!ShouldAvoidAsteroids())
+	{
+		return FVector::ZeroVector;
+	}
+
+	FVector AvoidanceForce = FVector::ZeroVector;
+
+	TArray<AActor*> Asteroids;
+	UGameplayStatics::GetAllActorsOfClass(this, AAsteroidSurvivorAsteroid::StaticClass(), Asteroids);
+
+	const FVector MyLocation = GetActorLocation();
+
+	for (AActor* Actor : Asteroids)
+	{
+		const FVector ToAsteroid = Actor->GetActorLocation() - MyLocation;
+		const float Distance = ToAsteroid.Size();
+
+		if (Distance < AsteroidAvoidanceRadius && Distance > KINDA_SMALL_NUMBER)
+		{
+			// Stronger repulsion when closer (quadratic falloff)
+			const float NormDist = Distance / AsteroidAvoidanceRadius;
+			const float Strength = (1.0f - NormDist) * (1.0f - NormDist);
+			AvoidanceForce -= ToAsteroid.GetSafeNormal() * Strength;
+		}
+	}
+
+	if (!AvoidanceForce.IsNearlyZero())
+	{
+		AvoidanceForce = AvoidanceForce.GetClampedToMaxSize(1.0f) * AsteroidAvoidanceStrength;
+	}
+
+	return AvoidanceForce;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Damage & destruction
 // ────────────────────────────────────────────────────────────────────────────
@@ -234,4 +271,32 @@ void AEnemyShipBase::OnEnemyOverlapBegin(
 
 	// Player contact damage is handled by the ship's overlap callback
 	// (see AsteroidSurvivorShip::OnShipOverlapBegin).
+
+	// ── Asteroid collision ─────────────────────────────────────────────────
+	AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor);
+	if (Asteroid)
+	{
+		// Boss motherships are immune – the asteroid's overlap handler destroys
+		// the asteroid instead (see AsteroidSurvivorAsteroid::OnAsteroidOverlapBegin).
+		if (EnemyType == EEnemyShipType::Boss)
+		{
+			return;
+		}
+
+		// Non-boss enemy ships are destroyed on asteroid contact
+		bExploding = true;
+
+		// Award score to the player
+		AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+			UGameplayStatics::GetGameMode(this));
+		if (GM)
+		{
+			GM->AddScore(ScoreValue);
+		}
+
+		SpawnScrapDrops();
+		TrySpawnWeaponDrop();
+		Destroy();
+		return;
+	}
 }
