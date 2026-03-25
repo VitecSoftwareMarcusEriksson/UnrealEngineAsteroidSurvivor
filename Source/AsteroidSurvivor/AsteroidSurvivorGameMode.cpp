@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AsteroidSurvivorGameMode.h"
+#include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorBackground.h"
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorPlayerController.h"
@@ -45,6 +46,17 @@ void AAsteroidSurvivorGameMode::Tick(float DeltaSeconds)
 			RespawnPlayer();
 		}
 	}
+
+	// Asteroid spawning
+	if (!bGameOver)
+	{
+		AsteroidSpawnTimer -= DeltaSeconds;
+		if (AsteroidSpawnTimer <= 0.0f)
+		{
+			SpawnAsteroid();
+			AsteroidSpawnTimer = AsteroidSpawnInterval;
+		}
+	}
 }
 
 void AAsteroidSurvivorGameMode::OnPlayerShipDestroyed()
@@ -68,6 +80,11 @@ void AAsteroidSurvivorGameMode::OnPlayerShipHit()
 	{
 		TriggerGameOver();
 	}
+}
+
+void AAsteroidSurvivorGameMode::AddScore(int32 Points)
+{
+	Score += Points;
 }
 
 void AAsteroidSurvivorGameMode::TriggerGameOver()
@@ -124,4 +141,79 @@ void AAsteroidSurvivorGameMode::EnsureLightingExists()
 	FRotator Rotation(-50.0f, -45.0f, 0.0f);
 	GetWorld()->SpawnActor<ADirectionalLight>(
 		ADirectionalLight::StaticClass(), Location, Rotation);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Asteroid spawning
+// ────────────────────────────────────────────────────────────────────────────
+
+void AAsteroidSurvivorGameMode::SpawnAsteroid()
+{
+	// Enforce the maximum asteroid count
+	int32 AsteroidCount = 0;
+	for (TActorIterator<AAsteroidSurvivorAsteroid> It(GetWorld()); It; ++It)
+	{
+		++AsteroidCount;
+	}
+	if (AsteroidCount >= MaxAsteroids)
+	{
+		return;
+	}
+
+	const FVector SpawnLocation = GetSpawnLocationOutsideCamera();
+
+	// Pick a random size with a bias toward larger asteroids
+	EAsteroidSize Size;
+	const float SizeRoll = FMath::FRand();
+	if (SizeRoll < 0.5f)
+	{
+		Size = EAsteroidSize::Large;
+	}
+	else if (SizeRoll < 0.8f)
+	{
+		Size = EAsteroidSize::Medium;
+	}
+	else
+	{
+		Size = EAsteroidSize::Small;
+	}
+
+	// Aim roughly toward the player with some random deviation (±30°)
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	FVector TargetLocation = PlayerPawn ? PlayerPawn->GetActorLocation() : FVector::ZeroVector;
+	FVector Direction = (TargetLocation - SpawnLocation).GetSafeNormal();
+	const float AngleDeviation = FMath::FRandRange(-30.0f, 30.0f);
+	Direction = Direction.RotateAngleAxis(AngleDeviation, FVector::UpVector);
+
+	const float Speed = FMath::FRandRange(MinAsteroidSpeed, MaxAsteroidSpeed);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AAsteroidSurvivorAsteroid* Asteroid = GetWorld()->SpawnActor<AAsteroidSurvivorAsteroid>(
+		AAsteroidSurvivorAsteroid::StaticClass(), SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+
+	if (Asteroid)
+	{
+		Asteroid->InitAsteroid(Size, Direction, Speed);
+	}
+}
+
+FVector AAsteroidSurvivorGameMode::GetSpawnLocationOutsideCamera() const
+{
+	// The camera is orthographic with OrthoWidth 2048, so the visible
+	// half-extent along X is ~1024 cm.  Spawn on a circle well beyond that.
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const FVector Center = PlayerPawn ? PlayerPawn->GetActorLocation() : FVector::ZeroVector;
+
+	const float SpawnRadius = 1500.0f;
+	const float RandomAngle = FMath::FRandRange(0.0f, 360.0f);
+
+	const FVector Offset(
+		FMath::Cos(FMath::DegreesToRadians(RandomAngle)) * SpawnRadius,
+		FMath::Sin(FMath::DegreesToRadians(RandomAngle)) * SpawnRadius,
+		0.0f);
+
+	return Center + Offset;
 }

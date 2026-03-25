@@ -2,6 +2,7 @@
 
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorProjectile.h"
+#include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorGameMode.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
@@ -256,6 +257,16 @@ void AAsteroidSurvivorShip::OnShipOverlapBegin(UPrimitiveComponent* OverlappedCo
 	{
 		return;
 	}
+
+	// Only respond to asteroid collisions – ignore projectiles and other actors.
+	AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor);
+	if (!Asteroid)
+	{
+		return;
+	}
+
+	// The asteroid disappears on contact with the ship
+	Asteroid->Destroy();
 
 	// Notify game mode to lose a life
 	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
