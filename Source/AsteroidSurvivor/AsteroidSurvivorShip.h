@@ -6,7 +6,7 @@
 #include "GameFramework/Pawn.h"
 #include "AsteroidSurvivorShip.generated.h"
 
-class USceneComponent;
+class USphereComponent;
 class UStaticMeshComponent;
 class UCameraComponent;
 class USpringArmComponent;
@@ -37,9 +37,9 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 
 	// ── Components ──────────────────────────────────────────────────────────
-	/** Invisible root that keeps the actor oriented in the XY play-plane. */
+	/** Collision sphere root – provides reliable overlap detection for asteroids. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	USceneComponent* SceneRoot = nullptr;
+	USphereComponent* CollisionSphere = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* ShipMesh = nullptr;

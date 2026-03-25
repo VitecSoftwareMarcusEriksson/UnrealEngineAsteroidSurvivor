@@ -34,10 +34,6 @@ public:
 	AAsteroidSurvivorAsteroid();
 
 	virtual void Tick(float DeltaTime) override;
-	virtual void NotifyHit(class UPrimitiveComponent* MyComp, AActor* Other,
-	                        class UPrimitiveComponent* OtherComp, bool bSelfMoved,
-	                        FVector HitLocation, FVector HitNormal,
-	                        FVector NormalImpulse, const FHitResult& Hit) override;
 
 	/** Apply damage; destroys and optionally splits the asteroid */
 	void TakeDamage_Asteroid(int32 DamageAmount);
@@ -95,11 +91,17 @@ private:
 	int32 Health = 1;
 	float Speed = 150.0f;
 	int32 ScoreValue = 20;
-	float RotationSpeed = 0.0f;
+	FRotator TumbleRate = FRotator::ZeroRotator;
 	bool bExploding = false;
+	float SpawnImmunityTimer = 0.0f;
 
 	void ApplySizeParameters();
 	void Split();
 	void ExplodeIntoFragments();
 	void NotifyGameMode() const;
+
+	UFUNCTION()
+	void OnAsteroidOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+	                            bool bFromSweep, const FHitResult& SweepResult);
 };

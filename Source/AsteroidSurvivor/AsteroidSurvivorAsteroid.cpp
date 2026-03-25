@@ -4,6 +4,7 @@
 #include "AsteroidSurvivorGameMode.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
@@ -13,7 +14,7 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
-	// Use overlap-based collision so projectiles and ship can detect hits
+	// Use overlap-based collision so projectiles, ship, and other asteroids can detect hits
 	CollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CollisionSphere->SetCollisionObjectType(ECC_WorldDynamic);
 	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -21,6 +22,9 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	CollisionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	CollisionSphere->SetGenerateOverlapEvents(true);
 	SetRootComponent(CollisionSphere);
+
+	CollisionSphere->OnComponentBeginOverlap.AddDynamic(
+		this, &AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin);
 
 	AsteroidMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AsteroidMesh"));
 	AsteroidMesh->SetupAttachment(RootComponent);
@@ -33,8 +37,12 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 		AsteroidMesh->SetStaticMesh(SphereMesh.Object);
 	}
 
-	// Random slow tumble
-	RotationSpeed = FMath::FRandRange(30.0f, 120.0f);
+	// Random multi-axis tumble for a more natural look
+	TumbleRate = FRotator(
+		FMath::FRandRange(-60.0f, 60.0f),
+		FMath::FRandRange(30.0f, 120.0f),
+		FMath::FRandRange(-40.0f, 40.0f)
+	);
 }
 
 void AAsteroidSurvivorAsteroid::BeginPlay()
@@ -47,21 +55,62 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 	{
 		AsteroidClass = GetClass();
 	}
+
+	// Brief immunity after spawning to prevent instant collision with siblings
+	SpawnImmunityTimer = 0.3f;
+
+	// Apply a rocky material with per-asteroid color variation
+	if (AsteroidMesh)
+	{
+		UMaterialInstanceDynamic* DynMat = AsteroidMesh->CreateDynamicMaterialInstance(0);
+		if (DynMat)
+		{
+			FLinearColor BaseColor(0.4f, 0.3f, 0.25f, 1.0f);
+			switch (AsteroidSize)
+			{
+			case EAsteroidSize::Large:
+				BaseColor = FLinearColor(0.35f, 0.25f, 0.2f, 1.0f);
+				break;
+			case EAsteroidSize::Medium:
+				BaseColor = FLinearColor(0.4f, 0.3f, 0.22f, 1.0f);
+				break;
+			case EAsteroidSize::Small:
+				BaseColor = FLinearColor(0.5f, 0.35f, 0.25f, 1.0f);
+				break;
+			default:
+				break;
+			}
+			// Random tint for visual diversity
+			constexpr float ColorVariation = 0.06f;
+			BaseColor.R += FMath::FRandRange(-ColorVariation, ColorVariation);
+			BaseColor.G += FMath::FRandRange(-ColorVariation, ColorVariation);
+			BaseColor.B += FMath::FRandRange(-ColorVariation, ColorVariation);
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseColor);
+		}
+	}
 }
 
 void AAsteroidSurvivorAsteroid::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Count down spawn immunity
+	if (SpawnImmunityTimer > 0.0f)
+	{
+		SpawnImmunityTimer -= DeltaTime;
+	}
+
 	// Drift
 	AddActorWorldOffset(DriftDirection * Speed * DeltaTime, false);
 
-	// Tumble
-	AddActorLocalRotation(FRotator(0.0f, RotationSpeed * DeltaTime, 0.0f));
+	// Multi-axis tumble
+	AddActorLocalRotation(TumbleRate * DeltaTime);
 
-	// Despawn if too far from the play area (spawn border is at ~2200cm)
+	// Despawn if too far from the player (spawn border is at ~2200cm from the ship)
 	constexpr float DespawnDistance = 5000.0f;
-	if (GetActorLocation().SizeSquared() > DespawnDistance * DespawnDistance)
+	APawn* PlayerShip = UGameplayStatics::GetPlayerPawn(this, 0);
+	FVector RefPos = PlayerShip ? PlayerShip->GetActorLocation() : FVector::ZeroVector;
+	if (FVector::DistSquared(GetActorLocation(), RefPos) > DespawnDistance * DespawnDistance)
 	{
 		Destroy();
 	}
@@ -78,14 +127,20 @@ void AAsteroidSurvivorAsteroid::TakeDamage_Asteroid(int32 DamageAmount)
 	}
 }
 
-void AAsteroidSurvivorAsteroid::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other,
-                                           UPrimitiveComponent* OtherComp, bool bSelfMoved,
-                                           FVector HitLocation, FVector HitNormal,
-                                           FVector NormalImpulse, const FHitResult& Hit)
+void AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin(UPrimitiveComponent* OverlappedComp,
+                                                        AActor* OtherActor,
+                                                        UPrimitiveComponent* OtherComp,
+                                                        int32 OtherBodyIndex,
+                                                        bool bFromSweep,
+                                                        const FHitResult& SweepResult)
 {
-	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
+	if (!OtherActor || bExploding || SpawnImmunityTimer > 0.0f)
+	{
+		return;
+	}
 
-	if (Other && Other->IsA<AAsteroidSurvivorAsteroid>() && !bExploding)
+	AAsteroidSurvivorAsteroid* OtherAsteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor);
+	if (OtherAsteroid && !OtherAsteroid->bExploding && OtherAsteroid->SpawnImmunityTimer <= 0.0f)
 	{
 		bExploding = true;
 		ExplodeIntoFragments();
@@ -98,32 +153,42 @@ void AAsteroidSurvivorAsteroid::NotifyHit(UPrimitiveComponent* MyComp, AActor* O
 
 void AAsteroidSurvivorAsteroid::ApplySizeParameters()
 {
+	float BaseRadius = 0.0f;
+
 	switch (AsteroidSize)
 	{
 	case EAsteroidSize::Large:
-		CollisionSphere->SetSphereRadius(LargeRadius);
-		AsteroidMesh->SetRelativeScale3D(FVector(LargeRadius / 50.0f));
+		BaseRadius = LargeRadius;
 		Speed = LargeSpeed;
 		Health = LargeHealth;
 		ScoreValue = LargeScore;
 		break;
 
 	case EAsteroidSize::Medium:
-		CollisionSphere->SetSphereRadius(MediumRadius);
-		AsteroidMesh->SetRelativeScale3D(FVector(MediumRadius / 50.0f));
+		BaseRadius = MediumRadius;
 		Speed = MediumSpeed;
 		Health = MediumHealth;
 		ScoreValue = MediumScore;
 		break;
 
 	case EAsteroidSize::Small:
-		CollisionSphere->SetSphereRadius(SmallRadius);
-		AsteroidMesh->SetRelativeScale3D(FVector(SmallRadius / 50.0f));
+		BaseRadius = SmallRadius;
 		Speed = SmallSpeed;
 		Health = SmallHealth;
 		ScoreValue = SmallScore;
 		break;
 	}
+
+	CollisionSphere->SetSphereRadius(BaseRadius);
+
+	// Non-uniform scaling for an irregular rocky shape
+	float BaseScale = BaseRadius / 50.0f;
+	FVector IrregularScale(
+		BaseScale * FMath::FRandRange(0.8f, 1.2f),
+		BaseScale * FMath::FRandRange(0.8f, 1.2f),
+		BaseScale * FMath::FRandRange(0.8f, 1.2f)
+	);
+	AsteroidMesh->SetRelativeScale3D(IrregularScale);
 }
 
 void AAsteroidSurvivorAsteroid::Split()

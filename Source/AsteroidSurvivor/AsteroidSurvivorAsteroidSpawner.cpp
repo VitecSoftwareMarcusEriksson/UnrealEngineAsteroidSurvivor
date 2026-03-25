@@ -90,7 +90,12 @@ void AAsteroidSurvivorAsteroidSpawner::SpawnAsteroid(EAsteroidSize Size, float S
 		return;
 	}
 
-	// Pick a random edge (top, bottom, left, right) to spawn from
+	// Spawn relative to the player ship so asteroids always appear outside the camera view
+	APawn* Ship = UGameplayStatics::GetPlayerPawn(this, 0);
+	FVector ShipPos = Ship ? Ship->GetActorLocation() : FVector::ZeroVector;
+	ShipPos.Z = 0.0f;
+
+	// Pick a random edge (top, bottom, left, right) relative to the ship
 	int32 Edge = FMath::RandRange(0, 3);
 	float HalfExt = SpawnBorderHalfExtent;
 
@@ -98,21 +103,21 @@ void AAsteroidSurvivorAsteroidSpawner::SpawnAsteroid(EAsteroidSize Size, float S
 	switch (Edge)
 	{
 	case 0: // Top
-		SpawnLocation = FVector(FMath::FRandRange(-HalfExt, HalfExt),  HalfExt, 0.0f);
+		SpawnLocation = ShipPos + FVector(FMath::FRandRange(-HalfExt, HalfExt),  HalfExt, 0.0f);
 		break;
 	case 1: // Bottom
-		SpawnLocation = FVector(FMath::FRandRange(-HalfExt, HalfExt), -HalfExt, 0.0f);
+		SpawnLocation = ShipPos + FVector(FMath::FRandRange(-HalfExt, HalfExt), -HalfExt, 0.0f);
 		break;
 	case 2: // Left
-		SpawnLocation = FVector(-HalfExt, FMath::FRandRange(-HalfExt, HalfExt), 0.0f);
+		SpawnLocation = ShipPos + FVector(-HalfExt, FMath::FRandRange(-HalfExt, HalfExt), 0.0f);
 		break;
 	default: // Right
-		SpawnLocation = FVector( HalfExt, FMath::FRandRange(-HalfExt, HalfExt), 0.0f);
+		SpawnLocation = ShipPos + FVector( HalfExt, FMath::FRandRange(-HalfExt, HalfExt), 0.0f);
 		break;
 	}
 
-	// Drift roughly toward the centre with a random spread of ±30°
-	FVector DriftDir = (FVector::ZeroVector - SpawnLocation).GetSafeNormal();
+	// Drift roughly toward the ship with a random spread of ±30°
+	FVector DriftDir = (ShipPos - SpawnLocation).GetSafeNormal();
 	float RandomAngle = FMath::FRandRange(-30.0f, 30.0f);
 	DriftDir = DriftDir.RotateAngleAxis(RandomAngle, FVector::UpVector);
 

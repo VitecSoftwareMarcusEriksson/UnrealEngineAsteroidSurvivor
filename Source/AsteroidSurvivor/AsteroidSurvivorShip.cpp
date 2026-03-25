@@ -5,9 +5,10 @@
 #include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorGameMode.h"
 #include "Camera/CameraComponent.h"
-#include "Components/SceneComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -21,27 +22,25 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Invisible root keeps the actor's orientation in the XY play-plane.
-	// The visual mesh is attached as a child with its own rotation so that
-	// GetActorForwardVector() always lies in the XY plane (critical for
-	// top-down movement and projectile direction).
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
-	SetRootComponent(SceneRoot);
+	// Collision sphere as root – provides reliable overlap detection for
+	// asteroid hits and is the component moved by SetActorLocation.
+	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
+	CollisionSphere->InitSphereRadius(40.0f);
+	CollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionSphere->SetCollisionObjectType(ECC_Pawn);
+	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	CollisionSphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	CollisionSphere->SetGenerateOverlapEvents(true);
+	SetRootComponent(CollisionSphere);
 
-	// Static mesh representing the ship hull
+	CollisionSphere->OnComponentBeginOverlap.AddDynamic(
+		this, &AAsteroidSurvivorShip::OnShipOverlapBegin);
+
+	// Static mesh representing the ship hull (visual only, no collision)
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
-	ShipMesh->SetupAttachment(SceneRoot);
+	ShipMesh->SetupAttachment(CollisionSphere);
 	ShipMesh->SetSimulatePhysics(false);
-
-	// Set up overlap-based collision so the ship can move freely
-	// and detect asteroid hits via overlap events.
-	ShipMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	ShipMesh->SetCollisionObjectType(ECC_Pawn);
-	ShipMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
-	ShipMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
-	ShipMesh->SetGenerateOverlapEvents(true);
-
-	ShipMesh->OnComponentBeginOverlap.AddDynamic(this, &AAsteroidSurvivorShip::OnShipOverlapBegin);
+	ShipMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// Assign a default visible mesh (cone shape ≈ simple ship silhouette)
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultShipMesh(
@@ -52,14 +51,14 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	}
 	// Rotate so the cone tip points along +X (actor forward).
 	// This is a visual-only rotation on the child mesh; it does NOT
-	// affect the actor's forward vector because SceneRoot is the root.
+	// affect the actor's forward vector because CollisionSphere is the root.
 	ShipMesh->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	ShipMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.7f));
 
-	// Top-down camera rig – attached to the scene root so it follows
+	// Top-down camera rig – attached to the collision sphere root so it follows
 	// the actor position without being affected by mesh rotation.
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	SpringArm->SetupAttachment(SceneRoot);
+	SpringArm->SetupAttachment(CollisionSphere);
 	SpringArm->TargetArmLength = 1400.0f;
 	SpringArm->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	SpringArm->bDoCollisionTest = false;
@@ -84,6 +83,17 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 void AAsteroidSurvivorShip::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Apply a metallic blue-silver ship material for a more spaceship-like look
+	if (ShipMesh)
+	{
+		UMaterialInstanceDynamic* DynMat = ShipMesh->CreateDynamicMaterialInstance(0);
+		if (DynMat)
+		{
+			const FLinearColor ShipColor(0.15f, 0.25f, 0.55f, 1.0f);
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ShipColor);
+		}
+	}
 
 	// Register Enhanced Input mapping context.
 	// For the initial default pawn, the controller is typically set by the
