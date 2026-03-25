@@ -80,10 +80,6 @@ public:
 	const TArray<FUpgradeOption>& GetCurrentUpgradeOptions() const { return CurrentUpgradeOptions; }
 
 protected:
-	/** Delay in seconds before respawning the player after death */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Game Rules")
-	float RespawnDelay = 2.0f;
-
 	// ── Thorium / leveling ─────────────────────────────────────────────────
 	/** Base Thorium required for the first level-up. Each subsequent level
 	 *  requires BaseThoriumPerLevel × CurrentLevel. */

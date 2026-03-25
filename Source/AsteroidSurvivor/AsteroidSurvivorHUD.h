@@ -30,5 +30,5 @@ private:
 	/** Draws a filled progress bar on the Canvas. */
 	void DrawProgressBar(float X, float Y, float Width, float Height,
 	                     float Fraction, const FLinearColor& FillColor,
-	                     const FLinearColor& BackColor) const;
+	                     const FLinearColor& BackColor);
 };

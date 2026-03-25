@@ -175,7 +175,7 @@ void AAsteroidSurvivorHUD::DrawHUD()
 
 void AAsteroidSurvivorHUD::DrawProgressBar(float X, float Y, float Width, float Height,
                                             float Fraction, const FLinearColor& FillColor,
-                                            const FLinearColor& BackColor) const
+                                            const FLinearColor& BackColor)
 {
 	Fraction = FMath::Clamp(Fraction, 0.0f, 1.0f);
 
