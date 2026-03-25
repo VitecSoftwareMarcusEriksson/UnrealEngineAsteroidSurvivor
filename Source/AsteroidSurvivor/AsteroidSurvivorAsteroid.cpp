@@ -46,8 +46,8 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 		AsteroidMesh->SetStaticMesh(SphereMesh.Object);
 	}
 
-	// Random yaw spin for visual interest (Z-axis only keeps shape round
-	// when viewed from the top-down camera).
+	// Random yaw spin for visual interest. Z-axis only rotation keeps the
+	// sphere round when viewed from the top-down camera.
 	YawSpinRate = FMath::FRandRange(-120.0f, 120.0f);
 }
 
