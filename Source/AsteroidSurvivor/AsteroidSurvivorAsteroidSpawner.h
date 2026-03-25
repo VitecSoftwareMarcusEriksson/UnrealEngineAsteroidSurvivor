@@ -40,19 +40,30 @@ protected:
 
 	/** Number of large asteroids spawned per wave (scales with wave number) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
-	int32 BaseAsteroidsPerWave = 3;
+	int32 BaseAsteroidsPerWave = 8;
 
 	/** How many additional asteroids each new wave adds */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
-	int32 AsteroidsPerWaveIncrement = 2;
+	int32 AsteroidsPerWaveIncrement = 3;
 
 	/** Speed multiplier applied to asteroid drift each wave */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
 	float SpeedScalePerWave = 0.1f;
 
+	/** Minimum interval between continuous asteroid spawns (seconds) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
+	float ContinuousSpawnMinInterval = 1.5f;
+
+	/** Maximum interval between continuous asteroid spawns (seconds) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawner")
+	float ContinuousSpawnMaxInterval = 4.0f;
+
 private:
 	UPROPERTY()
 	TArray<AAsteroidSurvivorAsteroid*> ActiveAsteroids;
+
+	float ContinuousSpawnTimer = 0.0f;
+	int32 CurrentSpeedWave = 1;
 
 	void SpawnAsteroid(EAsteroidSize Size, float SpeedMultiplier);
 	void CleanDestroyedRefs();

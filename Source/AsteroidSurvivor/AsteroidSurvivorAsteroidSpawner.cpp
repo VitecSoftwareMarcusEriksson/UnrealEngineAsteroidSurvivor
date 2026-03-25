@@ -24,11 +24,38 @@ void AAsteroidSurvivorAsteroidSpawner::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	CleanDestroyedRefs();
+
+	// Continuous spawning at random intervals
+	ContinuousSpawnTimer -= DeltaTime;
+	if (ContinuousSpawnTimer <= 0.0f)
+	{
+		float SpeedMult = 1.0f + (CurrentSpeedWave - 1) * SpeedScalePerWave;
+
+		// Pick a random size, weighted towards larger asteroids
+		EAsteroidSize SpawnSize;
+		int32 SizeRoll = FMath::RandRange(0, 99);
+		if (SizeRoll < 50)
+		{
+			SpawnSize = EAsteroidSize::Large;
+		}
+		else if (SizeRoll < 80)
+		{
+			SpawnSize = EAsteroidSize::Medium;
+		}
+		else
+		{
+			SpawnSize = EAsteroidSize::Small;
+		}
+
+		SpawnAsteroid(SpawnSize, SpeedMult);
+		ContinuousSpawnTimer = FMath::FRandRange(ContinuousSpawnMinInterval, ContinuousSpawnMaxInterval);
+	}
 }
 
 void AAsteroidSurvivorAsteroidSpawner::StartWave(int32 WaveNumber)
 {
 	CleanDestroyedRefs();
+	CurrentSpeedWave = WaveNumber;
 
 	int32 NumAsteroids = BaseAsteroidsPerWave + (WaveNumber - 1) * AsteroidsPerWaveIncrement;
 	float SpeedMult = 1.0f + (WaveNumber - 1) * SpeedScalePerWave;
@@ -37,6 +64,9 @@ void AAsteroidSurvivorAsteroidSpawner::StartWave(int32 WaveNumber)
 	{
 		SpawnAsteroid(EAsteroidSize::Large, SpeedMult);
 	}
+
+	// Reset continuous spawn timer
+	ContinuousSpawnTimer = FMath::FRandRange(ContinuousSpawnMinInterval, ContinuousSpawnMaxInterval);
 }
 
 int32 AAsteroidSurvivorAsteroidSpawner::GetActiveAsteroidCount() const

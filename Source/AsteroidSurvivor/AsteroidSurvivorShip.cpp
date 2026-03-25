@@ -53,7 +53,7 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	// Rotate so the cone tip points along +X (actor forward).
 	// This is a visual-only rotation on the child mesh; it does NOT
 	// affect the actor's forward vector because SceneRoot is the root.
-	ShipMesh->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));
+	ShipMesh->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	ShipMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.7f));
 
 	// Top-down camera rig – attached to the scene root so it follows

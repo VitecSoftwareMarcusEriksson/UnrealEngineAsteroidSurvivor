@@ -13,7 +13,12 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
-	CollisionSphere->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+	// Use overlap-based collision so projectiles and ship can detect hits
+	CollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionSphere->SetCollisionObjectType(ECC_WorldDynamic);
+	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	CollisionSphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	CollisionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	CollisionSphere->SetGenerateOverlapEvents(true);
 	SetRootComponent(CollisionSphere);
 
@@ -49,10 +54,17 @@ void AAsteroidSurvivorAsteroid::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	// Drift
-	AddActorWorldOffset(DriftDirection * Speed * DeltaTime, true);
+	AddActorWorldOffset(DriftDirection * Speed * DeltaTime, false);
 
 	// Tumble
 	AddActorLocalRotation(FRotator(0.0f, RotationSpeed * DeltaTime, 0.0f));
+
+	// Despawn if too far from the play area
+	constexpr float DespawnDistance = 4000.0f;
+	if (GetActorLocation().SizeSquared() > DespawnDistance * DespawnDistance)
+	{
+		Destroy();
+	}
 }
 
 void AAsteroidSurvivorAsteroid::TakeDamage_Asteroid(int32 DamageAmount)
