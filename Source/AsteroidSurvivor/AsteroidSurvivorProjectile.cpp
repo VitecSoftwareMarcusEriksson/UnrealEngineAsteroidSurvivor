@@ -96,7 +96,8 @@ void AAsteroidSurvivorProjectile::OnOverlapBegin(UPrimitiveComponent* Overlapped
                                                    bool bFromSweep,
                                                    const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor != this && OtherActor != GetOwner())
+	if (OtherActor && OtherActor != this && OtherActor != GetOwner()
+		&& !OtherActor->IsA(AAsteroidSurvivorProjectile::StaticClass()))
 	{
 		Destroy();
 	}
