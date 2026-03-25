@@ -210,19 +210,19 @@ void AAsteroidSurvivorShip::Die()
 void AAsteroidSurvivorShip::SetupDefaultInputActions()
 {
 	// Move (Axis1D: positive = forward thrust, negative = reverse)
-	MoveAction = NewObject<UInputAction>();
+	MoveAction = NewObject<UInputAction>(this, TEXT("IA_DefaultMove"));
 	MoveAction->ValueType = EInputActionValueType::Axis1D;
 
 	// Rotate (Axis1D: positive = turn right, negative = turn left)
-	RotateAction = NewObject<UInputAction>();
+	RotateAction = NewObject<UInputAction>(this, TEXT("IA_DefaultRotate"));
 	RotateAction->ValueType = EInputActionValueType::Axis1D;
 
 	// Fire (Boolean: pressed / released)
-	FireAction = NewObject<UInputAction>();
+	FireAction = NewObject<UInputAction>(this, TEXT("IA_DefaultFire"));
 	FireAction->ValueType = EInputActionValueType::Boolean;
 
 	// Mapping context with default keyboard bindings
-	DefaultMappingContext = NewObject<UInputMappingContext>();
+	DefaultMappingContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Default"));
 
 	// -- Movement (W / Up = forward, S / Down = reverse) --
 	DefaultMappingContext->MapKey(MoveAction, EKeys::W);
