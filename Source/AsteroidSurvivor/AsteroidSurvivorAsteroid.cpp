@@ -107,7 +107,7 @@ void AAsteroidSurvivorAsteroid::Tick(float DeltaTime)
 	}
 
 	// Drift
-	AddActorWorldOffset(DriftDirection * Speed * DeltaTime, true);
+	AddActorWorldOffset(DriftDirection * Speed * DeltaTime, false);
 
 	// Multi-axis tumble
 	AddActorLocalRotation(TumbleRate * DeltaTime);
@@ -190,14 +190,9 @@ void AAsteroidSurvivorAsteroid::ApplySizeParameters()
 	// Apply wave-based speed multiplier
 	Speed *= SpeedMultiplier;
 
-	// Non-uniform scaling for an irregular rocky shape
+	// Uniform scaling to keep asteroids perfectly round
 	float BaseScale = BaseRadius / 50.0f;
-	FVector IrregularScale(
-		BaseScale * FMath::FRandRange(0.8f, 1.2f),
-		BaseScale * FMath::FRandRange(0.8f, 1.2f),
-		BaseScale * FMath::FRandRange(0.8f, 1.2f)
-	);
-	AsteroidMesh->SetRelativeScale3D(IrregularScale);
+	AsteroidMesh->SetRelativeScale3D(FVector(BaseScale));
 }
 
 void AAsteroidSurvivorAsteroid::Split()
