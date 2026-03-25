@@ -5,6 +5,7 @@
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorPlayerController.h"
 #include "AsteroidSurvivorHUD.h"
+#include "Engine/DirectionalLight.h"
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
 
@@ -21,6 +22,10 @@ void AAsteroidSurvivorGameMode::BeginPlay()
 	Super::BeginPlay();
 
 	Lives = InitialLives;
+
+	// Spawn a directional light when the level has none, so the game is
+	// visible even in an empty map.
+	EnsureLightingExists();
 
 	// Find or spawn the asteroid spawner
 	for (TActorIterator<AAsteroidSurvivorAsteroidSpawner> It(GetWorld()); It; ++It)
@@ -137,4 +142,19 @@ void AAsteroidSurvivorGameMode::RespawnPlayer()
 	{
 		PC->Possess(NewShip);
 	}
+}
+
+void AAsteroidSurvivorGameMode::EnsureLightingExists()
+{
+	// If the level already contains a directional light, do nothing.
+	for (TActorIterator<ADirectionalLight> It(GetWorld()); It; ++It)
+	{
+		return;
+	}
+
+	// Spawn a default sun-like directional light so geometry is visible.
+	FVector Location(0.0f, 0.0f, 1000.0f);
+	FRotator Rotation(-50.0f, -45.0f, 0.0f);
+	GetWorld()->SpawnActor<ADirectionalLight>(
+		ADirectionalLight::StaticClass(), Location, Rotation);
 }

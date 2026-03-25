@@ -7,9 +7,13 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "UObject/ConstructorHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
 #include "InputActionValue.h"
+#include "InputMappingContext.h"
+#include "InputModifiers.h"
 #include "Kismet/GameplayStatics.h"
 
 AAsteroidSurvivorShip::AAsteroidSurvivorShip()
@@ -21,6 +25,17 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	SetRootComponent(ShipMesh);
 	ShipMesh->SetCollisionProfileName(TEXT("Pawn"));
 	ShipMesh->SetSimulatePhysics(false);
+
+	// Assign a default visible mesh (cone shape ≈ simple ship silhouette)
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultShipMesh(
+		TEXT("/Engine/BasicShapes/Cone.Cone"));
+	if (DefaultShipMesh.Succeeded())
+	{
+		ShipMesh->SetStaticMesh(DefaultShipMesh.Object);
+	}
+	// Rotate so the cone tip points along +X (actor forward)
+	ShipMesh->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));
+	ShipMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.7f));
 
 	// Top-down camera rig
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -37,6 +52,13 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	Camera->bUsePawnControlRotation = false;
 	Camera->SetProjectionMode(ECameraProjectionMode::Orthographic);
 	Camera->OrthoWidth = 2048.0f;
+
+	// Default projectile class so the ship can fire out of the box
+	ProjectileClass = AAsteroidSurvivorProjectile::StaticClass();
+
+	// Create default Enhanced Input actions and mapping context.
+	// Blueprint subclasses can override these UPROPERTY fields.
+	SetupDefaultInputActions();
 }
 
 void AAsteroidSurvivorShip::BeginPlay()
@@ -183,4 +205,52 @@ void AAsteroidSurvivorShip::Die()
 	}
 
 	Destroy();
+}
+
+void AAsteroidSurvivorShip::SetupDefaultInputActions()
+{
+	// Move (Axis1D: positive = forward thrust, negative = reverse)
+	MoveAction = NewObject<UInputAction>();
+	MoveAction->ValueType = EInputActionValueType::Axis1D;
+
+	// Rotate (Axis1D: positive = turn right, negative = turn left)
+	RotateAction = NewObject<UInputAction>();
+	RotateAction->ValueType = EInputActionValueType::Axis1D;
+
+	// Fire (Boolean: pressed / released)
+	FireAction = NewObject<UInputAction>();
+	FireAction->ValueType = EInputActionValueType::Boolean;
+
+	// Mapping context with default keyboard bindings
+	DefaultMappingContext = NewObject<UInputMappingContext>();
+
+	// -- Movement (W / Up = forward, S / Down = reverse) --
+	DefaultMappingContext->MapKey(MoveAction, EKeys::W);
+	DefaultMappingContext->MapKey(MoveAction, EKeys::Up);
+
+	{
+		FEnhancedActionKeyMapping& Mapping = DefaultMappingContext->MapKey(MoveAction, EKeys::S);
+		Mapping.Modifiers.Add(NewObject<UInputModifierNegate>(DefaultMappingContext));
+	}
+	{
+		FEnhancedActionKeyMapping& Mapping = DefaultMappingContext->MapKey(MoveAction, EKeys::Down);
+		Mapping.Modifiers.Add(NewObject<UInputModifierNegate>(DefaultMappingContext));
+	}
+
+	// -- Rotation (D / Right = turn right, A / Left = turn left) --
+	DefaultMappingContext->MapKey(RotateAction, EKeys::D);
+	DefaultMappingContext->MapKey(RotateAction, EKeys::Right);
+
+	{
+		FEnhancedActionKeyMapping& Mapping = DefaultMappingContext->MapKey(RotateAction, EKeys::A);
+		Mapping.Modifiers.Add(NewObject<UInputModifierNegate>(DefaultMappingContext));
+	}
+	{
+		FEnhancedActionKeyMapping& Mapping = DefaultMappingContext->MapKey(RotateAction, EKeys::Left);
+		Mapping.Modifiers.Add(NewObject<UInputModifierNegate>(DefaultMappingContext));
+	}
+
+	// -- Fire (Space / Left mouse button) --
+	DefaultMappingContext->MapKey(FireAction, EKeys::SpaceBar);
+	DefaultMappingContext->MapKey(FireAction, EKeys::LeftMouseButton);
 }

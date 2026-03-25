@@ -15,5 +15,8 @@ public class AsteroidSurvivorEditorTarget : TargetRules
 
         // Add the main game module
         ExtraModuleNames.Add("AsteroidSurvivor");
+
+        // Add the editor module that auto-generates default maps
+        ExtraModuleNames.Add("AsteroidSurvivorEditor");
     }
 }

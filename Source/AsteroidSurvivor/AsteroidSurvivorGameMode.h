@@ -70,4 +70,10 @@ private:
 	void StartWave(int32 WaveNumber);
 	void TriggerGameOver();
 	void RespawnPlayer();
+
+	/**
+	 * Spawns a default directional light when the level has no lighting,
+	 * so the game is visible even in an auto-generated empty map.
+	 */
+	void EnsureLightingExists();
 };
