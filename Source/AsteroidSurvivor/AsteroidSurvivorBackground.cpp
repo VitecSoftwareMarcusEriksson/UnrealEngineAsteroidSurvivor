@@ -117,6 +117,18 @@ void AAsteroidSurvivorBackground::CreateStarLayer(UInstancedStaticMeshComponent*
 	}
 }
 
+/** Wraps a value into the range [-Size/2, Size/2] for seamless parallax tiling */
+static float WrapParallaxValue(float Value, float Size)
+{
+	float HalfSize = Size * 0.5f;
+	float Wrapped = FMath::Fmod(Value + HalfSize, Size);
+	if (Wrapped < 0.0f)
+	{
+		Wrapped += Size;
+	}
+	return Wrapped - HalfSize;
+}
+
 void AAsteroidSurvivorBackground::UpdateLayerPosition(UInstancedStaticMeshComponent* ISM, float ParallaxFactor, const FVector& ShipPos, float ZOffset)
 {
 	if (!ISM)
@@ -124,21 +136,9 @@ void AAsteroidSurvivorBackground::UpdateLayerPosition(UInstancedStaticMeshCompon
 		return;
 	}
 
-	// Wrap the parallax offset within the field size for seamless tiling
-	auto WrapValue = [](float Value, float Size) -> float
-	{
-		float HalfSize = Size * 0.5f;
-		float Wrapped = FMath::Fmod(Value + HalfSize, Size);
-		if (Wrapped < 0.0f)
-		{
-			Wrapped += Size;
-		}
-		return Wrapped - HalfSize;
-	};
-
 	FVector ParallaxOffset;
-	ParallaxOffset.X = WrapValue(ShipPos.X * ParallaxFactor, FieldSize);
-	ParallaxOffset.Y = WrapValue(ShipPos.Y * ParallaxFactor, FieldSize);
+	ParallaxOffset.X = WrapParallaxValue(ShipPos.X * ParallaxFactor, FieldSize);
+	ParallaxOffset.Y = WrapParallaxValue(ShipPos.Y * ParallaxFactor, FieldSize);
 	ParallaxOffset.Z = 0.0f;
 
 	FVector LayerPos = ShipPos - ParallaxOffset;

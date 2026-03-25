@@ -178,7 +178,8 @@ void AAsteroidSurvivorAsteroid::ExplodeIntoFragments()
 		FragDir.Normalize();
 
 		// Offset spawn position slightly to avoid immediate re-collision
-		FVector SpawnPos = GetActorLocation() + FragDir * 60.0f;
+		constexpr float FragmentSpawnOffset = 60.0f;
+		FVector SpawnPos = GetActorLocation() + FragDir * FragmentSpawnOffset;
 		FTransform ChildTransform(GetActorRotation(), SpawnPos);
 
 		AAsteroidSurvivorAsteroid* Child = GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
