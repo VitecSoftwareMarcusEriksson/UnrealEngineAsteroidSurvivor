@@ -46,6 +46,9 @@ protected:
 	UStaticMeshComponent* PickupMesh = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* OuterGlowMesh = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UPointLightComponent* GlowLight = nullptr;
 
 	// ── Tuning ──────────────────────────────────────────────────────────────
@@ -64,6 +67,10 @@ protected:
 	/** How long the pickup lingers before auto-destroying (seconds). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Thorium")
 	float Lifetime = 10.0f;
+
+	/** Scale of the outer glow mesh. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Thorium")
+	float OuterGlowScale = 0.35f;
 
 	/** Rate at which the initial drift velocity decays (per second). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Thorium")

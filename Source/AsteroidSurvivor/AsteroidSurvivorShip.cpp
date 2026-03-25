@@ -4,6 +4,7 @@
 #include "AsteroidSurvivorProjectile.h"
 #include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorGameMode.h"
+#include "AsteroidSurvivorTrailParticle.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -175,6 +176,27 @@ void AAsteroidSurvivorShip::Tick(float DeltaTime)
 		// Move ship with sweep to detect overlaps along the movement path
 		FVector NewLocation = GetActorLocation() + Velocity * DeltaTime;
 		SetActorLocation(NewLocation, true);
+
+		// Spawn engine trail particles when moving fast enough
+		const float SpeedSq = Velocity.SizeSquared();
+		const float TrailSpeedThreshold = 50.0f;
+		TrailSpawnTimer -= DeltaTime;
+		if (SpeedSq > TrailSpeedThreshold * TrailSpeedThreshold && TrailSpawnTimer <= 0.0f)
+		{
+			// Spawn trail behind the ship (opposite of forward direction)
+			const FVector TrailOffset = GetActorRotation().RotateVector(FVector(-60.0f, 0.0f, 0.0f));
+			const FVector TrailLocation = GetActorLocation() + TrailOffset;
+
+			FActorSpawnParameters TrailSpawnParams;
+			TrailSpawnParams.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			GetWorld()->SpawnActor<AAsteroidSurvivorTrailParticle>(
+				AAsteroidSurvivorTrailParticle::StaticClass(),
+				TrailLocation, FRotator::ZeroRotator, TrailSpawnParams);
+
+			TrailSpawnTimer = TrailSpawnInterval;
+		}
 
 		// Auto-fire while button is held
 		if (bFiring)

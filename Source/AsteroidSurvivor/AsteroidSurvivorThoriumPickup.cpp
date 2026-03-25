@@ -38,14 +38,24 @@ AAsteroidSurvivorThoriumPickup::AAsteroidSurvivorThoriumPickup()
 	{
 		PickupMesh->SetStaticMesh(SphereMeshAsset.Object);
 	}
-	PickupMesh->SetRelativeScale3D(FVector(0.12f));
+	PickupMesh->SetRelativeScale3D(FVector(0.18f));
 
-	// Subtle glow light
+	// Outer glow mesh for enhanced visibility
+	OuterGlowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("OuterGlowMesh"));
+	OuterGlowMesh->SetupAttachment(CollisionSphere);
+	OuterGlowMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (SphereMeshAsset.Succeeded())
+	{
+		OuterGlowMesh->SetStaticMesh(SphereMeshAsset.Object);
+	}
+	OuterGlowMesh->SetRelativeScale3D(FVector(OuterGlowScale));
+
+	// Bright glow light
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(3000.0f);
+	GlowLight->SetIntensity(15000.0f);
 	GlowLight->SetLightColor(FLinearColor(0.2f, 0.8f, 1.0f));
-	GlowLight->SetAttenuationRadius(100.0f);
+	GlowLight->SetAttenuationRadius(250.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -59,11 +69,25 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = PickupMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor ThoriumColor(0.5f, 4.0f, 5.0f, 1.0f);
+			const FLinearColor ThoriumColor(1.0f, 8.0f, 10.0f, 1.0f);
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ThoriumColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ThoriumColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ThoriumColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ThoriumColor);
+		}
+	}
+
+	// Outer glow mesh – translucent bright aura
+	if (OuterGlowMesh)
+	{
+		UMaterialInstanceDynamic* GlowMat = OuterGlowMesh->CreateDynamicMaterialInstance(0);
+		if (GlowMat)
+		{
+			const FLinearColor GlowColor(0.3f, 3.0f, 4.0f, 0.3f);
+			GlowMat->SetVectorParameterValue(FName(TEXT("Color")), GlowColor);
+			GlowMat->SetVectorParameterValue(FName(TEXT("BaseColor")), GlowColor);
+			GlowMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), GlowColor);
+			GlowMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), GlowColor);
 		}
 	}
 }
@@ -130,6 +154,20 @@ void AAsteroidSurvivorThoriumPickup::Tick(float DeltaTime)
 	if (PickupMesh)
 	{
 		PickupMesh->SetRelativeLocation(FVector(0.0f, 0.0f, Bob));
+	}
+
+	// Pulsing glow effect – scale the outer glow and modulate light intensity
+	const float PulsePhase = LifeTimer * 6.0f;
+	const float PulseFactor = 0.7f + 0.3f * FMath::Sin(PulsePhase);
+	if (OuterGlowMesh)
+	{
+		const float OuterScale = OuterGlowScale * PulseFactor;
+		OuterGlowMesh->SetRelativeScale3D(FVector(OuterScale));
+		OuterGlowMesh->SetRelativeLocation(FVector(0.0f, 0.0f, Bob));
+	}
+	if (GlowLight)
+	{
+		GlowLight->SetIntensity(15000.0f * PulseFactor);
 	}
 }
 

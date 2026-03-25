@@ -110,6 +110,7 @@ void AAsteroidSurvivorAsteroid::InitAsteroid(EAsteroidSize InSize, const FVector
 {
 	AsteroidSize = InSize;
 	Velocity = Direction.GetSafeNormal() * InSpeed;
+	CurrentHealth = GetMaxHealthForSize();
 	ApplySizeProperties();
 }
 
@@ -143,6 +144,17 @@ float AAsteroidSurvivorAsteroid::GetDamageAmount() const
 	case EAsteroidSize::Medium: return MediumDamage;
 	case EAsteroidSize::Small:  return SmallDamage;
 	default:                    return MediumDamage;
+	}
+}
+
+float AAsteroidSurvivorAsteroid::GetMaxHealthForSize() const
+{
+	switch (AsteroidSize)
+	{
+	case EAsteroidSize::Large:  return LargeHealth;
+	case EAsteroidSize::Medium: return MediumHealth;
+	case EAsteroidSize::Small:  return SmallHealth;
+	default:                    return MediumHealth;
 	}
 }
 
@@ -295,22 +307,30 @@ void AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin(
 	// ── Projectile hit ─────────────────────────────────────────────────────
 	if (OtherActor->IsA(AAsteroidSurvivorProjectile::StaticClass()))
 	{
-		// Award score via the game mode
-		AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
-			UGameplayStatics::GetGameMode(this));
-		if (GM)
-		{
-			int32 Points = 0;
-			switch (AsteroidSize)
-			{
-			case EAsteroidSize::Large:  Points = 20;  break;
-			case EAsteroidSize::Medium: Points = 50;  break;
-			case EAsteroidSize::Small:  Points = 100; break;
-			}
-			GM->AddScore(Points);
-		}
+		// Apply projectile damage to asteroid health
+		AAsteroidSurvivorProjectile* Projectile = Cast<AAsteroidSurvivorProjectile>(OtherActor);
+		const int32 ProjectileDamage = Projectile ? Projectile->GetDamage() : 25;
+		CurrentHealth -= static_cast<float>(ProjectileDamage);
 
-		Explode(/*bDropThorium=*/ true);
+		if (CurrentHealth <= 0.0f)
+		{
+			// Award score via the game mode
+			AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+				UGameplayStatics::GetGameMode(this));
+			if (GM)
+			{
+				int32 Points = 0;
+				switch (AsteroidSize)
+				{
+				case EAsteroidSize::Large:  Points = 20;  break;
+				case EAsteroidSize::Medium: Points = 50;  break;
+				case EAsteroidSize::Small:  Points = 100; break;
+				}
+				GM->AddScore(Points);
+			}
+
+			Explode(/*bDropThorium=*/ true);
+		}
 		return;
 	}
 

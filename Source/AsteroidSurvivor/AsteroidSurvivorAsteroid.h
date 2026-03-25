@@ -83,6 +83,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Damage")
 	float LargeDamage = 40.0f;
 
+	// ── Health per size (how many hit points before the asteroid is destroyed) ──
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Health")
+	float SmallHealth = 25.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Health")
+	float MediumHealth = 50.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Health")
+	float LargeHealth = 100.0f;
+
 	// ── Thorium drops ───────────────────────────────────────────────────────
 	/** Probability (0-1) that this asteroid contains Thorium energy. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Thorium")
@@ -106,12 +116,16 @@ private:
 	float GraceTimer = 0.0f;
 	bool bExploding = false;
 	bool bContainsThorium = false;
+	float CurrentHealth = 0.0f;
 
 	/** Returns the collision sphere radius for the current size. */
 	float GetCollisionRadius() const;
 
 	/** Returns the mesh scale for the current size. */
 	float GetMeshScale() const;
+
+	/** Returns the maximum health for the current size. */
+	float GetMaxHealthForSize() const;
 
 	/** Applies collision radius and mesh scale based on AsteroidSize. */
 	void ApplySizeProperties();

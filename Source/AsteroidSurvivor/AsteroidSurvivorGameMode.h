@@ -89,11 +89,11 @@ protected:
 	// ── Asteroid spawning ──────────────────────────────────────────────────
 	/** Seconds between asteroid spawns */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroids")
-	float AsteroidSpawnInterval = 3.0f;
+	float AsteroidSpawnInterval = 1.5f;
 
 	/** Hard cap on the number of asteroids alive at once */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroids")
-	int32 MaxAsteroids = 15;
+	int32 MaxAsteroids = 30;
 
 	/** Minimum travel speed for a newly spawned asteroid (cm/s) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroids")

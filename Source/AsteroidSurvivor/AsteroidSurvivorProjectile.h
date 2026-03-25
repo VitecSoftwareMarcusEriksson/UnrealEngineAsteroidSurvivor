@@ -49,7 +49,11 @@ protected:
 
 	/** Amount of damage dealt on hit */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
-	int32 Damage = 1;
+	int32 Damage = 25;
+
+public:
+	/** Returns the damage this projectile deals. */
+	int32 GetDamage() const { return Damage; }
 
 private:
 	float LifeTimer = 0.0f;
