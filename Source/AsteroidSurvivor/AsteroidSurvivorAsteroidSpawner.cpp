@@ -125,7 +125,7 @@ void AAsteroidSurvivorAsteroidSpawner::SpawnAsteroid(EAsteroidSize Size, float S
 
 	AAsteroidSurvivorAsteroid* Asteroid = GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
 		AsteroidClass, SpawnTransform, nullptr, nullptr,
-		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
 	if (Asteroid)
 	{
