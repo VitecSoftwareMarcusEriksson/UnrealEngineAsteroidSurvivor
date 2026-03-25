@@ -63,7 +63,7 @@ AsteroidSurvivor/
 
 ## Requirements
 
-- **Unreal Engine 5.3** (download via the Epic Games Launcher)
+- **Unreal Engine 5.7** (download via the Epic Games Launcher)
 - A C++ compiler compatible with UE5 (Visual Studio 2022 on Windows, Xcode on macOS)
 
 ---
