@@ -45,10 +45,6 @@ AAsteroidSurvivorBackground::AAsteroidSurvivorBackground()
 	// Space dust – tiny particles with subtle drift
 	SpaceDustISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("SpaceDust"));
 	InitISM(SpaceDustISM);
-
-	// Nebula – large, faint colored clouds for depth
-	NebulaISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("Nebula"));
-	InitISM(NebulaISM);
 }
 
 void AAsteroidSurvivorBackground::BeginPlay()
@@ -63,15 +59,11 @@ void AAsteroidSurvivorBackground::BeginPlay()
 	// Space dust – many tiny colored particles for atmosphere
 	CreateSpaceDustLayer(SpaceDustISM, 200);
 
-	// Nebula – large faint colored clouds for depth and vibrancy
-	CreateNebulaLayer(NebulaISM, 25);
-
 	// Color the star layers with subtle tints for visual variety
 	ApplyLayerColor(FarStarsISM, FLinearColor(1.5f, 1.5f, 2.5f, 1.0f));
 	ApplyLayerColor(MidStarsISM, FLinearColor(2.0f, 2.0f, 2.5f, 1.0f));
 	ApplyLayerColor(NearStarsISM, FLinearColor(3.0f, 2.8f, 2.5f, 1.0f));
 	ApplyLayerColor(SpaceDustISM, FLinearColor(1.0f, 1.5f, 3.0f, 1.0f));
-	ApplyLayerColor(NebulaISM, FLinearColor(1.2f, 0.6f, 2.0f, 1.0f));
 }
 
 void AAsteroidSurvivorBackground::Tick(float DeltaTime)
@@ -84,7 +76,6 @@ void AAsteroidSurvivorBackground::Tick(float DeltaTime)
 	UpdateLayerPosition(FarStarsISM, FarParallax, ShipPos, -500.0f);
 	UpdateLayerPosition(MidStarsISM, MidParallax, ShipPos, -300.0f);
 	UpdateLayerPosition(NearStarsISM, NearParallax, ShipPos, -100.0f);
-	UpdateLayerPosition(NebulaISM, NebulaParallax, ShipPos, -600.0f);
 
 	// Space dust gets a subtle animated drift on top of parallax scrolling
 	DustDriftTime += DeltaTime;
@@ -194,56 +185,6 @@ void AAsteroidSurvivorBackground::CreateSpaceDustLayer(UInstancedStaticMeshCompo
 		{
 			FVector Offset(dx * FieldSize, dy * FieldSize, 0.0f);
 			for (const FTransform& T : BaseDust)
-			{
-				FTransform TiledT = T;
-				TiledT.SetLocation(T.GetLocation() + Offset);
-				ISM->AddInstance(TiledT, false);
-			}
-		}
-	}
-}
-
-void AAsteroidSurvivorBackground::CreateNebulaLayer(UInstancedStaticMeshComponent* ISM, int32 NumClouds)
-{
-	if (!ISM)
-	{
-		return;
-	}
-
-	const float HalfField = FieldSize * 0.5f;
-
-	TArray<FTransform> BaseClouds;
-	BaseClouds.Reserve(NumClouds);
-
-	for (int32 i = 0; i < NumClouds; i++)
-	{
-		FVector Pos(
-			FMath::FRandRange(-HalfField, HalfField),
-			FMath::FRandRange(-HalfField, HalfField),
-			0.0f
-		);
-
-		// Large, flattened spheres to simulate nebula clouds
-		float BaseScale = FMath::FRandRange(1.5f, 4.0f);
-		FVector ScaleVec(
-			BaseScale * FMath::FRandRange(0.8f, 1.5f),
-			BaseScale * FMath::FRandRange(0.8f, 1.5f),
-			BaseScale * FMath::FRandRange(0.1f, 0.3f)
-		);
-
-		FTransform InstanceTransform;
-		InstanceTransform.SetLocation(Pos);
-		InstanceTransform.SetScale3D(ScaleVec);
-		BaseClouds.Add(InstanceTransform);
-	}
-
-	// Tile 3x3 for seamless wrapping
-	for (int32 dx = -1; dx <= 1; dx++)
-	{
-		for (int32 dy = -1; dy <= 1; dy++)
-		{
-			FVector Offset(dx * FieldSize, dy * FieldSize, 0.0f);
-			for (const FTransform& T : BaseClouds)
 			{
 				FTransform TiledT = T;
 				TiledT.SetLocation(T.GetLocation() + Offset);
