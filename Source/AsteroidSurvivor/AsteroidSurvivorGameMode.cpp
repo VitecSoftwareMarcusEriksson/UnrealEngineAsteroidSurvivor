@@ -102,9 +102,8 @@ void AAsteroidSurvivorGameMode::AddScrap(int32 Amount)
 
 	CurrentScrap += Amount;
 
-	// Scrap auto-upgrades: every 25 scrap collected enhances all existing
-	// weapons on the player ship by increasing the base blaster damage.
-	// The ship handles the actual stat changes.
+	// Scrap auto-upgrades: every 25 scrap collected enhances the base blaster
+	// by adding extra projectiles in a fan pattern.
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(PlayerPawn);
 	if (Ship)

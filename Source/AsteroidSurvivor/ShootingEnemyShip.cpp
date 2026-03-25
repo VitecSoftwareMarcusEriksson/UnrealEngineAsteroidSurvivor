@@ -103,9 +103,7 @@ void AShootingEnemyShip::FireAtPlayer(AAsteroidSurvivorShip* PlayerShip)
 
 	const FVector SpawnLoc = GetActorLocation() + ToPlayer * (CollisionRadius + 20.0f);
 
-	AEnemyProjectile* Proj = GetWorld()->SpawnActor<AEnemyProjectile>(
+	// Projectile spawned – no further reference needed
+	GetWorld()->SpawnActor<AEnemyProjectile>(
 		AEnemyProjectile::StaticClass(), SpawnLoc, FireRotation, SpawnParams);
-
-	// Projectile inherits speed from EnemyProjectile defaults
-	(void)Proj;
 }

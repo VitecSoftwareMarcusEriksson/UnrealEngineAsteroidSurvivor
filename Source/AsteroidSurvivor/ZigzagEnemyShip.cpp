@@ -19,7 +19,7 @@ AZigzagEnemyShip::AZigzagEnemyShip()
 	WeaponDropChance = 0.05f; // 5% weapon drop chance
 
 	// Randomise the starting phase so multiple zigzag ships don't move in sync
-	ZigzagTimer = FMath::FRandRange(0.0f, 6.28f);
+	ZigzagTimer = FMath::FRandRange(0.0f, 2.0f * PI);
 }
 
 void AZigzagEnemyShip::UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* PlayerShip)

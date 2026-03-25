@@ -598,13 +598,14 @@ void AAsteroidSurvivorShip::FireExtraWeapons()
 		return;
 	}
 
-	// Enhanced blaster: at level 2+, fire an additional projectile with slight angle offset
+	// Enhanced blaster: at level 2+, fire additional projectiles with slight angle offset
 	if (BlasterLevel >= 2)
 	{
+		const float BlasterSpreadAngle = 8.0f; // Degrees between extra blaster shots
 		const int32 ExtraShots = FMath::Min(BlasterLevel - 1, 3); // up to 3 extra
 		for (int32 i = 0; i < ExtraShots; ++i)
 		{
-			float AngleOffset = (i + 1) * 8.0f * ((i % 2 == 0) ? 1.0f : -1.0f);
+			float AngleOffset = (i + 1) * BlasterSpreadAngle * ((i % 2 == 0) ? 1.0f : -1.0f);
 			FRotator ShotRot = GetActorRotation();
 			ShotRot.Yaw += AngleOffset;
 			FVector ShotLoc = GetActorLocation() + ShotRot.RotateVector(MuzzleOffset);
@@ -646,11 +647,13 @@ void AAsteroidSurvivorShip::FireSpreadShot(int32 Level)
 	// Spread shot fires additional projectiles in a fan pattern
 	// Level 1: 2 extra (±15°), Level 2: 4 extra (±10°, ±20°), Level 3: 6 extra (±8°, ±16°, ±24°)
 	const int32 PairsCount = Level;
-	const float BaseAngle = 15.0f - (Level - 1) * 2.5f; // Tighter spread at higher levels
+	const float SpreadBaseAngle = 15.0f;       // Starting angle at level 1
+	const float SpreadLevelDecrement = 2.5f;   // Tightens spread per level
+	const float AngleStep = SpreadBaseAngle - (Level - 1) * SpreadLevelDecrement;
 
 	for (int32 i = 1; i <= PairsCount; ++i)
 	{
-		float Angle = BaseAngle * i;
+		float Angle = AngleStep * i;
 		for (float Sign : {-1.0f, 1.0f})
 		{
 			FRotator ShotRot = GetActorRotation();
@@ -733,11 +736,12 @@ void AAsteroidSurvivorShip::FireHomingMissile(int32 Level)
 		}
 	}
 
-	// Sort by distance
-	NearbyEnemies.Sort([this](const AActor& A, const AActor& B)
+	// Sort by distance (cache ship location to avoid redundant calls)
+	const FVector ShipLoc = GetActorLocation();
+	NearbyEnemies.Sort([ShipLoc](const AActor& A, const AActor& B)
 	{
-		return FVector::DistSquared(GetActorLocation(), A.GetActorLocation()) <
-		       FVector::DistSquared(GetActorLocation(), B.GetActorLocation());
+		return FVector::DistSquared(ShipLoc, A.GetActorLocation()) <
+		       FVector::DistSquared(ShipLoc, B.GetActorLocation());
 	});
 
 	for (int32 i = 0; i < MissileCount && i < NearbyEnemies.Num(); ++i)
