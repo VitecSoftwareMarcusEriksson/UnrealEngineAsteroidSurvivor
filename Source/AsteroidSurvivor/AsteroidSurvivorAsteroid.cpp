@@ -12,6 +12,7 @@
 AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
 	// Use overlap-based collision so projectiles, ship, and other asteroids can detect hits
@@ -21,6 +22,8 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	CollisionSphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 	CollisionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	CollisionSphere->SetGenerateOverlapEvents(true);
+	CollisionSphere->SetSimulatePhysics(false);
+	CollisionSphere->SetMobility(EComponentMobility::Movable);
 	SetRootComponent(CollisionSphere);
 
 	CollisionSphere->OnComponentBeginOverlap.AddDynamic(
@@ -29,6 +32,7 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	AsteroidMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AsteroidMesh"));
 	AsteroidMesh->SetupAttachment(RootComponent);
 	AsteroidMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AsteroidMesh->SetSimulatePhysics(false);
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(
 		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
@@ -55,6 +59,25 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 	{
 		AsteroidClass = GetClass();
 	}
+
+	// Defensive: ensure DriftDirection is a valid unit vector.
+	// A zero direction means the asteroid would never move.
+	if (DriftDirection.IsNearlyZero())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Asteroid %s has zero DriftDirection, assigning default"), *GetName());
+		DriftDirection = FVector(1.0f, 0.0f, 0.0f);
+	}
+	DriftDirection = DriftDirection.GetSafeNormal();
+
+	// Defensive: ensure Speed is positive
+	if (Speed <= 0.0f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Asteroid %s has zero/negative Speed (%f), resetting"), *GetName(), Speed);
+		Speed = 150.0f;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Asteroid %s BeginPlay: Speed=%f Dir=(%f,%f,%f) Size=%d"),
+		*GetName(), Speed, DriftDirection.X, DriftDirection.Y, DriftDirection.Z, static_cast<int32>(AsteroidSize));
 
 	// Brief immunity after spawning to prevent instant collision with siblings
 	SpawnImmunityTimer = 0.3f;
@@ -106,8 +129,11 @@ void AAsteroidSurvivorAsteroid::Tick(float DeltaTime)
 		SpawnImmunityTimer -= DeltaTime;
 	}
 
-	// Drift
-	AddActorWorldOffset(DriftDirection * Speed * DeltaTime, false);
+	// Drift – frame-rate independent movement in world space.
+	// Compute new location explicitly to guarantee movement occurs.
+	const FVector DeltaMove = DriftDirection * Speed * DeltaTime;
+	const FVector NewLocation = GetActorLocation() + DeltaMove;
+	SetActorLocation(NewLocation, /*bSweep=*/false);
 
 	// Multi-axis tumble
 	AddActorLocalRotation(TumbleRate * DeltaTime);
@@ -223,7 +249,7 @@ void AAsteroidSurvivorAsteroid::Split()
 
 		AAsteroidSurvivorAsteroid* Child = GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
 			AsteroidClass, ChildTransform, nullptr, nullptr,
-			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
 		if (Child)
 		{
@@ -266,7 +292,7 @@ void AAsteroidSurvivorAsteroid::ExplodeIntoFragments()
 
 		AAsteroidSurvivorAsteroid* Child = GetWorld()->SpawnActorDeferred<AAsteroidSurvivorAsteroid>(
 			AsteroidClass, ChildTransform, nullptr, nullptr,
-			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
 		if (Child)
 		{
