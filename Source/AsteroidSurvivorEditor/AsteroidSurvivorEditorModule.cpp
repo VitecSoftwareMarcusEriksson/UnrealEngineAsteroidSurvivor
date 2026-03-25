@@ -71,10 +71,10 @@ void FAsteroidSurvivorEditorModule::CreateMinimalMap(const FString& PackageName)
 	FSavePackageArgs SaveArgs;
 	SaveArgs.TopLevelFlags = RF_Standalone;
 
-	const ESavePackageResult Result = UPackage::SavePackage(
+	const bool bSuccess = UPackage::SavePackage(
 		Package, World, *FilePath, SaveArgs);
 
-	if (Result == ESavePackageResult::Success)
+	if (bSuccess)
 	{
 		UE_LOG(LogTemp, Log,
 			TEXT("AsteroidSurvivor: Created default map '%s'"), *PackageName);
@@ -82,8 +82,8 @@ void FAsteroidSurvivorEditorModule::CreateMinimalMap(const FString& PackageName)
 	else
 	{
 		UE_LOG(LogTemp, Warning,
-			TEXT("AsteroidSurvivor: Failed to save map '%s' (result %d)"),
-			*PackageName, static_cast<int32>(Result));
+			TEXT("AsteroidSurvivor: Failed to save map '%s'"),
+			*PackageName);
 	}
 
 	World->DestroyWorld(/*bInformEngineOfWorld=*/false);
