@@ -47,7 +47,7 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 
 	GraceTimer = SpawnGracePeriod;
 
-	// Apply a rocky brownish-orange emissive colour
+	// Apply a rocky brownish-orange emissive color
 	if (AsteroidMesh)
 	{
 		UMaterialInstanceDynamic* DynMat = AsteroidMesh->CreateDynamicMaterialInstance(0);
