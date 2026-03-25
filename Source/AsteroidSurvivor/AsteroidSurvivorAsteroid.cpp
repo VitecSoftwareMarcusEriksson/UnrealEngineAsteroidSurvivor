@@ -59,33 +59,39 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 	// Brief immunity after spawning to prevent instant collision with siblings
 	SpawnImmunityTimer = 0.3f;
 
-	// Apply a rocky material with per-asteroid color variation
+	// Apply a rocky material with per-asteroid color variation.
+	// Use bright HDR emissive values so asteroids are clearly visible in space,
+	// and set multiple parameter names for material compatibility.
 	if (AsteroidMesh)
 	{
 		UMaterialInstanceDynamic* DynMat = AsteroidMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			FLinearColor BaseColor(0.4f, 0.3f, 0.25f, 1.0f);
+			FLinearColor BaseColor(2.0f, 1.5f, 1.0f, 1.0f);
 			switch (AsteroidSize)
 			{
 			case EAsteroidSize::Large:
-				BaseColor = FLinearColor(0.35f, 0.25f, 0.2f, 1.0f);
+				BaseColor = FLinearColor(2.5f, 1.6f, 1.0f, 1.0f);
 				break;
 			case EAsteroidSize::Medium:
-				BaseColor = FLinearColor(0.4f, 0.3f, 0.22f, 1.0f);
+				BaseColor = FLinearColor(2.0f, 1.4f, 0.8f, 1.0f);
 				break;
 			case EAsteroidSize::Small:
-				BaseColor = FLinearColor(0.5f, 0.35f, 0.25f, 1.0f);
+				BaseColor = FLinearColor(3.0f, 2.0f, 1.2f, 1.0f);
 				break;
 			default:
 				break;
 			}
 			// Random tint for visual diversity
-			constexpr float ColorVariation = 0.06f;
+			constexpr float ColorVariation = 0.3f;
 			BaseColor.R += FMath::FRandRange(-ColorVariation, ColorVariation);
 			BaseColor.G += FMath::FRandRange(-ColorVariation, ColorVariation);
 			BaseColor.B += FMath::FRandRange(-ColorVariation, ColorVariation);
+			// Set multiple parameter names for material compatibility
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), BaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), BaseColor);
 		}
 	}
 }
@@ -180,6 +186,9 @@ void AAsteroidSurvivorAsteroid::ApplySizeParameters()
 	}
 
 	CollisionSphere->SetSphereRadius(BaseRadius);
+
+	// Apply wave-based speed multiplier
+	Speed *= SpeedMultiplier;
 
 	// Non-uniform scaling for an irregular rocky shape
 	float BaseScale = BaseRadius / 50.0f;

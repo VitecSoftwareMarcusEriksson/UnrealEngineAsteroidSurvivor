@@ -84,14 +84,18 @@ void AAsteroidSurvivorShip::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Apply a metallic blue-silver ship material for a more spaceship-like look
+	// Apply a bright metallic blue ship material for a more spaceship-like look.
+	// Use HDR emissive values and multiple parameter names for material compatibility.
 	if (ShipMesh)
 	{
 		UMaterialInstanceDynamic* DynMat = ShipMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor ShipColor(0.15f, 0.25f, 0.55f, 1.0f);
+			const FLinearColor ShipColor(0.6f, 1.2f, 3.0f, 1.0f);
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ShipColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShipColor);
 		}
 	}
 

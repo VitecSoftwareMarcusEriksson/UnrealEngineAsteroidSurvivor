@@ -42,6 +42,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Asteroid")
 	EAsteroidSize AsteroidSize = EAsteroidSize::Large;
 
+	/** External speed multiplier applied by the spawner (wave scaling) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asteroid")
+	float SpeedMultiplier = 1.0f;
+
 	/** Current drift direction (world-space, normalised) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asteroid")
 	FVector DriftDirection = FVector(1.0f, 0.0f, 0.0f);
