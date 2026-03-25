@@ -81,20 +81,6 @@ void AAsteroidSurvivorProjectile::Tick(float DeltaTime)
 	}
 }
 
-void AAsteroidSurvivorProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
-                                         UPrimitiveComponent* OtherComp,
-                                         FVector NormalImpulse, const FHitResult& Hit)
-{
-	if (OtherActor && OtherActor != this && OtherActor != GetOwner())
-	{
-		if (AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor))
-		{
-			Asteroid->TakeDamage_Asteroid(Damage);
-			Destroy();
-		}
-	}
-}
-
 void AAsteroidSurvivorProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp,
                                                    AActor* OtherActor,
                                                    UPrimitiveComponent* OtherComp,
