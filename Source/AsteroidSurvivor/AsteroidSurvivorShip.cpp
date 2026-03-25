@@ -131,9 +131,9 @@ void AAsteroidSurvivorShip::Tick(float DeltaTime)
 		Velocity = Velocity.GetSafeNormal() * MaxSpeed;
 	}
 
-	// Move ship (no sweep – collision is handled via overlap events)
+	// Move ship with sweep to detect overlaps along the movement path
 	FVector NewLocation = GetActorLocation() + Velocity * DeltaTime;
-	SetActorLocation(NewLocation, false);
+	SetActorLocation(NewLocation, true);
 
 	// Auto-fire while button is held
 	if (bFiring)

@@ -107,7 +107,7 @@ void AAsteroidSurvivorAsteroid::Tick(float DeltaTime)
 	}
 
 	// Drift
-	AddActorWorldOffset(DriftDirection * Speed * DeltaTime, false);
+	AddActorWorldOffset(DriftDirection * Speed * DeltaTime, true);
 
 	// Multi-axis tumble
 	AddActorLocalRotation(TumbleRate * DeltaTime);

@@ -70,8 +70,8 @@ void AAsteroidSurvivorBackground::BeginPlay()
 	ApplyLayerColor(FarStarsISM, FLinearColor(1.5f, 1.5f, 2.5f, 1.0f));
 	ApplyLayerColor(MidStarsISM, FLinearColor(2.0f, 2.0f, 2.5f, 1.0f));
 	ApplyLayerColor(NearStarsISM, FLinearColor(3.0f, 2.8f, 2.5f, 1.0f));
-	ApplyLayerColor(SpaceDustISM, FLinearColor(0.4f, 0.6f, 1.2f, 1.0f));
-	ApplyLayerColor(NebulaISM, FLinearColor(0.3f, 0.15f, 0.5f, 1.0f));
+	ApplyLayerColor(SpaceDustISM, FLinearColor(1.0f, 1.5f, 3.0f, 1.0f));
+	ApplyLayerColor(NebulaISM, FLinearColor(1.2f, 0.6f, 2.0f, 1.0f));
 }
 
 void AAsteroidSurvivorBackground::Tick(float DeltaTime)

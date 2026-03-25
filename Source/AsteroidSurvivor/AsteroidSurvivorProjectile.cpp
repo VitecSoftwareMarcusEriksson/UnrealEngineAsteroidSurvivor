@@ -80,7 +80,7 @@ void AAsteroidSurvivorProjectile::Tick(float DeltaTime)
 
 	// Move forward
 	FVector Delta = GetActorForwardVector() * Speed * DeltaTime;
-	AddActorWorldOffset(Delta, false);
+	AddActorWorldOffset(Delta, true);
 
 	// Lifetime
 	LifeTimer += DeltaTime;
