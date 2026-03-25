@@ -24,10 +24,9 @@ enum class EAsteroidSize : uint8
  * - Spawned outside the camera view and moves inward.
  * - Colliding with another asteroid of equal or greater size causes this
  *   asteroid to explode into smaller fragments.
- * - Colliding with the player ship causes the ship to lose a life;
- *   the asteroid is destroyed (handled by the ship's overlap logic).
+ * - Colliding with the player ship deals damage based on asteroid size.
  * - Hit by a projectile: splits into smaller asteroids (or is destroyed
- *   if already Small).
+ *   if already Small). May drop Thorium Energy pickups.
  * - Despawns when it moves too far from the player.
  */
 UCLASS()
@@ -45,6 +44,9 @@ public:
 
 	/** Returns the size category of this asteroid. */
 	EAsteroidSize GetAsteroidSize() const { return AsteroidSize; }
+
+	/** Returns the damage this asteroid deals to the player ship on collision. */
+	float GetDamageAmount() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -71,11 +73,39 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid")
 	float SpawnGracePeriod = 0.5f;
 
+	// ── Damage per size ─────────────────────────────────────────────────────
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Damage")
+	float SmallDamage = 15.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Damage")
+	float MediumDamage = 25.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Damage")
+	float LargeDamage = 40.0f;
+
+	// ── Thorium drops ───────────────────────────────────────────────────────
+	/** Probability (0-1) that this asteroid contains Thorium energy. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Thorium")
+	float ThoriumDropChance = 0.6f;
+
+	/** Thorium energy per pickup for a Small asteroid. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Thorium")
+	int32 SmallThoriumPerPickup = 3;
+
+	/** Thorium energy per pickup for a Medium asteroid. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Thorium")
+	int32 MediumThoriumPerPickup = 5;
+
+	/** Thorium energy per pickup for a Large asteroid. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Asteroid|Thorium")
+	int32 LargeThoriumPerPickup = 8;
+
 private:
 	EAsteroidSize AsteroidSize = EAsteroidSize::Large;
 	FVector Velocity = FVector::ZeroVector;
 	float GraceTimer = 0.0f;
 	bool bExploding = false;
+	bool bContainsThorium = false;
 
 	/** Returns the collision sphere radius for the current size. */
 	float GetCollisionRadius() const;
@@ -86,8 +116,12 @@ private:
 	/** Applies collision radius and mesh scale based on AsteroidSize. */
 	void ApplySizeProperties();
 
-	/** Splits into smaller asteroids (or simply destroys if Small). */
-	void Explode();
+	/** Splits into smaller asteroids (or simply destroys if Small).
+	 *  @param bDropThorium  If true (projectile hit), spawns Thorium pickups. */
+	void Explode(bool bDropThorium = false);
+
+	/** Spawns Thorium Energy pickups at the asteroid's location. */
+	void SpawnThoriumPickups();
 
 	UFUNCTION()
 	void OnAsteroidOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

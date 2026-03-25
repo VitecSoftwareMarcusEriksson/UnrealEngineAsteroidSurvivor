@@ -20,6 +20,10 @@ struct FInputActionValue;
  * Movement: WASD / left stick – apply thrust in the ship's facing direction.
  * Rotation: Mouse / right stick – rotate the ship.
  * Fire:     Left mouse button / gamepad face button – shoot a projectile.
+ *
+ * The ship has a health-based damage system. Different asteroids deal
+ * different amounts of damage. Collecting Thorium Energy from destroyed
+ * asteroids allows the ship to level up and choose upgrades.
  */
 UCLASS()
 class ASTEROIDSURVIVOR_API AAsteroidSurvivorShip : public APawn
@@ -31,6 +35,38 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	// ── Health system ───────────────────────────────────────────────────────
+	/** Apply damage to the ship. Returns true if the ship was destroyed. */
+	bool ApplyDamageToShip(float DamageAmount);
+
+	float GetCurrentHealth() const { return CurrentHealth; }
+	float GetMaxHealth() const { return MaxHealth; }
+	bool IsShieldActive() const { return bShieldActive; }
+
+	// ── Upgrade multipliers (read by other systems) ─────────────────────────
+	float GetThoriumMagnetMultiplier() const { return ThoriumMagnetMultiplier; }
+
+	/** Apply an upgrade that increases max health and fully heals. */
+	void UpgradeMaxHealth(float BonusHealth);
+
+	/** Apply an upgrade that increases speed. */
+	void UpgradeSpeed(float Multiplier);
+
+	/** Apply an upgrade that increases turn rate. */
+	void UpgradeTurnRate(float Multiplier);
+
+	/** Apply an upgrade that adds or increases passive healing. */
+	void UpgradePassiveHealing(float HealPerSecond);
+
+	/** Apply an upgrade that grants or refreshes the shield. */
+	void UpgradeShield();
+
+	/** Apply an upgrade that increases fire rate. */
+	void UpgradeFireRate(float Multiplier);
+
+	/** Apply an upgrade that increases Thorium pull radius. */
+	void UpgradeThoriumMagnet(float Multiplier);
 
 protected:
 	virtual void BeginPlay() override;
@@ -50,6 +86,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UCameraComponent* Camera = nullptr;
 
+	/** Visual shield sphere shown when shield is active. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* ShieldMesh = nullptr;
+
 	// ── Input ────────────────────────────────────────────────────────────────
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* DefaultMappingContext = nullptr;
@@ -63,27 +103,36 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UInputAction* FireAction = nullptr;
 
-	// ── Tuning ───────────────────────────────────────────────────────────────
-	/** Maximum movement speed (cm/s) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
-	float ThrustForce = 600.0f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* SelectUpgrade1Action = nullptr;
 
-	/** Maximum speed cap (cm/s) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* SelectUpgrade2Action = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UInputAction* SelectUpgrade3Action = nullptr;
+
+	// ── Tuning ───────────────────────────────────────────────────────────────
+	/** Base thrust force (cm/s²) before upgrades. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
-	float MaxSpeed = 900.0f;
+	float BaseThrustForce = 600.0f;
+
+	/** Base maximum speed cap (cm/s) before upgrades. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
+	float BaseMaxSpeed = 900.0f;
 
 	/** Velocity retention factor per frame at 60 FPS (0 = instant stop, 1 = no drag).
 	 *  Applied in a frame-rate independent manner. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float Drag = 0.98f;
 
-	/** Rotation speed (degrees/s) */
+	/** Base rotation speed (degrees/s) before upgrades. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
-	float RotationSpeed = 200.0f;
+	float BaseRotationSpeed = 200.0f;
 
-	/** Minimum interval between shots (seconds) */
+	/** Base fire interval (seconds) before upgrades. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	float FireRate = 0.25f;
+	float BaseFireRate = 0.25f;
 
 	/** Muzzle offset from ship origin */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -93,21 +142,47 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<class AAsteroidSurvivorProjectile> ProjectileClass;
 
+	// ── Health ───────────────────────────────────────────────────────────────
+	/** Starting / base maximum health. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
+	float BaseMaxHealth = 100.0f;
+
 	/** Duration of invulnerability after being hit (seconds) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
-	float InvulnerabilityDuration = 3.0f;
+	float InvulnerabilityDuration = 2.0f;
 
 	/** Blink interval during invulnerability (seconds) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
 	float BlinkInterval = 0.15f;
 
+	/** Seconds after shield breaks before it regenerates (if shield upgrade is active). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
+	float ShieldRechargeTime = 15.0f;
+
 private:
+	// ── Effective stats (base × upgrade multipliers) ────────────────────────
+	float MaxHealth = 100.0f;
+	float CurrentHealth = 100.0f;
+	float SpeedMultiplier = 1.0f;
+	float TurnRateMultiplier = 1.0f;
+	float FireRateMultiplier = 1.0f;
+	float PassiveHealRate = 0.0f;      // HP restored per second
+	float ThoriumMagnetMultiplier = 1.0f;
+
+	// Shield
+	bool bHasShieldUpgrade = false;
+	bool bShieldActive = false;
+	float ShieldRechargeTimer = 0.0f;
+
 	// Input handlers
 	void Move(const FInputActionValue& Value);
 	void Rotate(const FInputActionValue& Value);
 	void StartFire();
 	void StopFire();
 	void Fire();
+	void OnSelectUpgrade1();
+	void OnSelectUpgrade2();
+	void OnSelectUpgrade3();
 
 	FVector Velocity = FVector::ZeroVector;
 	float FireTimer = 0.0f;
@@ -120,6 +195,9 @@ private:
 	bool bBlinkVisible = true;
 
 	void StartInvulnerability();
+
+	/** Update the shield mesh visibility. */
+	void UpdateShieldVisual();
 
 	/** Overlap handler for collision */
 	UFUNCTION()

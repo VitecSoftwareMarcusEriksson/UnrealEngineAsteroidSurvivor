@@ -1,0 +1,164 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#include "AsteroidSurvivorThoriumPickup.h"
+#include "AsteroidSurvivorShip.h"
+#include "AsteroidSurvivorGameMode.h"
+#include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Kismet/GameplayStatics.h"
+
+AAsteroidSurvivorThoriumPickup::AAsteroidSurvivorThoriumPickup()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	// Small collision sphere for pickup detection
+	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
+	CollisionSphere->InitSphereRadius(15.0f);
+	CollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionSphere->SetCollisionObjectType(ECC_WorldDynamic);
+	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	CollisionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	CollisionSphere->SetGenerateOverlapEvents(true);
+	SetRootComponent(CollisionSphere);
+
+	CollisionSphere->OnComponentBeginOverlap.AddDynamic(
+		this, &AAsteroidSurvivorThoriumPickup::OnPickupOverlapBegin);
+
+	// Glowing mesh
+	PickupMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PickupMesh"));
+	PickupMesh->SetupAttachment(CollisionSphere);
+	PickupMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMeshAsset(
+		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	if (SphereMeshAsset.Succeeded())
+	{
+		PickupMesh->SetStaticMesh(SphereMeshAsset.Object);
+	}
+	PickupMesh->SetRelativeScale3D(FVector(0.12f));
+
+	// Subtle glow light
+	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
+	GlowLight->SetupAttachment(RootComponent);
+	GlowLight->SetIntensity(3000.0f);
+	GlowLight->SetLightColor(FLinearColor(0.2f, 0.8f, 1.0f));
+	GlowLight->SetAttenuationRadius(100.0f);
+	GlowLight->SetCastShadows(false);
+}
+
+void AAsteroidSurvivorThoriumPickup::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Bright cyan / teal emissive material for the Thorium particle
+	if (PickupMesh)
+	{
+		UMaterialInstanceDynamic* DynMat = PickupMesh->CreateDynamicMaterialInstance(0);
+		if (DynMat)
+		{
+			const FLinearColor ThoriumColor(0.5f, 4.0f, 5.0f, 1.0f);
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ThoriumColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ThoriumColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ThoriumColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ThoriumColor);
+		}
+	}
+}
+
+void AAsteroidSurvivorThoriumPickup::InitPickup(int32 InThoriumAmount, const FVector& InDriftVelocity)
+{
+	ThoriumAmount = InThoriumAmount;
+	Velocity = InDriftVelocity;
+}
+
+void AAsteroidSurvivorThoriumPickup::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// Lifetime countdown
+	LifeTimer += DeltaTime;
+	if (LifeTimer >= Lifetime)
+	{
+		Destroy();
+		return;
+	}
+
+	// Find the player ship
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+
+	if (PlayerPawn)
+	{
+		const float DistToShip = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+
+		// Determine effective pull radius (the ship may have an upgraded magnet)
+		float EffectivePullRadius = PullRadius;
+		AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(PlayerPawn);
+		if (Ship)
+		{
+			EffectivePullRadius *= Ship->GetThoriumMagnetMultiplier();
+		}
+
+		if (DistToShip <= EffectivePullRadius)
+		{
+			// Pull toward ship
+			bBeingPulled = true;
+			FVector DirectionToShip = (PlayerPawn->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+			Velocity += DirectionToShip * PullAcceleration * DeltaTime;
+
+			// Clamp pull speed
+			if (Velocity.SizeSquared() > MaxPullSpeed * MaxPullSpeed)
+			{
+				Velocity = Velocity.GetSafeNormal() * MaxPullSpeed;
+			}
+		}
+		else if (!bBeingPulled)
+		{
+			// Apply drift drag to slow down the initial scatter velocity
+			Velocity *= FMath::Exp(-DriftDrag * DeltaTime);
+		}
+	}
+
+	// Move the pickup
+	FVector NewLocation = GetActorLocation() + Velocity * DeltaTime;
+	SetActorLocation(NewLocation, true);
+
+	// Gentle bob effect (sine wave on Z for visual interest)
+	float Bob = FMath::Sin(LifeTimer * 4.0f) * 2.0f;
+	if (PickupMesh)
+	{
+		PickupMesh->SetRelativeLocation(FVector(0.0f, 0.0f, Bob));
+	}
+}
+
+void AAsteroidSurvivorThoriumPickup::OnPickupOverlapBegin(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	if (!OtherActor || OtherActor == this)
+	{
+		return;
+	}
+
+	AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(OtherActor);
+	if (!Ship)
+	{
+		return;
+	}
+
+	// Add Thorium energy to the game mode
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM)
+	{
+		GM->AddThorium(ThoriumAmount);
+	}
+
+	Destroy();
+}
