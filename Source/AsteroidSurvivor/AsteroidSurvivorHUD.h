@@ -8,8 +8,8 @@
 
 /**
  * HUD for Asteroid Survivor.
- * Draws score, lives and a Game Over message directly via Canvas.
- * For a polished UI, replace or supplement this with a UMG widget.
+ * Draws score, health bar, Thorium XP bar, level indicator, upgrade
+ * selection screen, and Game Over overlay via Canvas.
  */
 UCLASS()
 class ASTEROIDSURVIVOR_API AAsteroidSurvivorHUD : public AHUD
@@ -25,4 +25,10 @@ protected:
 	/** Font used for HUD text */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HUD")
 	UFont* HUDFont = nullptr;
+
+private:
+	/** Draws a filled progress bar on the Canvas. */
+	void DrawProgressBar(float X, float Y, float Width, float Height,
+	                     float Fraction, const FLinearColor& FillColor,
+	                     const FLinearColor& BackColor) const;
 };

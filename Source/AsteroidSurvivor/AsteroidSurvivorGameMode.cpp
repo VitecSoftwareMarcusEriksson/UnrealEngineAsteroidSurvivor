@@ -22,7 +22,7 @@ void AAsteroidSurvivorGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Lives = InitialLives;
+	ThoriumForNextLevel = BaseThoriumPerLevel;
 
 	// Spawn a directional light when the level has none, so the game is
 	// visible even in an empty map.
@@ -37,18 +37,8 @@ void AAsteroidSurvivorGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (bWaitingForRespawn)
-	{
-		RespawnTimer -= DeltaSeconds;
-		if (RespawnTimer <= 0.0f)
-		{
-			bWaitingForRespawn = false;
-			RespawnPlayer();
-		}
-	}
-
-	// Asteroid spawning
-	if (!bGameOver)
+	// Asteroid spawning (paused during upgrade selection)
+	if (!bGameOver && !bSelectingUpgrade)
 	{
 		AsteroidSpawnTimer -= DeltaSeconds;
 		if (AsteroidSpawnTimer <= 0.0f)
@@ -61,31 +51,164 @@ void AAsteroidSurvivorGameMode::Tick(float DeltaSeconds)
 
 void AAsteroidSurvivorGameMode::OnPlayerShipDestroyed()
 {
-	Lives--;
-	if (Lives <= 0)
-	{
-		TriggerGameOver();
-	}
-	else
-	{
-		bWaitingForRespawn = true;
-		RespawnTimer = RespawnDelay;
-	}
-}
-
-void AAsteroidSurvivorGameMode::OnPlayerShipHit()
-{
-	Lives--;
-	if (Lives <= 0)
-	{
-		TriggerGameOver();
-	}
+	TriggerGameOver();
 }
 
 void AAsteroidSurvivorGameMode::AddScore(int32 Points)
 {
 	Score += Points;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Thorium & leveling
+// ────────────────────────────────────────────────────────────────────────────
+
+void AAsteroidSurvivorGameMode::AddThorium(int32 Amount)
+{
+	if (bGameOver || bSelectingUpgrade)
+	{
+		return;
+	}
+
+	CurrentThorium += Amount;
+
+	// Check for level-up
+	if (CurrentThorium >= ThoriumForNextLevel)
+	{
+		CurrentThorium -= ThoriumForNextLevel;
+		CurrentLevel++;
+		ThoriumForNextLevel = BaseThoriumPerLevel * CurrentLevel;
+		PresentUpgradeOptions();
+	}
+}
+
+void AAsteroidSurvivorGameMode::PresentUpgradeOptions()
+{
+	bSelectingUpgrade = true;
+	CurrentUpgradeOptions.Empty();
+
+	TArray<FUpgradeOption> Pool = BuildUpgradePool();
+
+	// Shuffle and pick up to 3 unique options
+	const int32 NumOptions = FMath::Min(3, Pool.Num());
+	for (int32 i = 0; i < Pool.Num(); ++i)
+	{
+		const int32 SwapIdx = FMath::RandRange(i, Pool.Num() - 1);
+		Pool.Swap(i, SwapIdx);
+	}
+	for (int32 i = 0; i < NumOptions; ++i)
+	{
+		CurrentUpgradeOptions.Add(Pool[i]);
+	}
+}
+
+void AAsteroidSurvivorGameMode::SelectUpgrade(int32 Index)
+{
+	if (!bSelectingUpgrade || !CurrentUpgradeOptions.IsValidIndex(Index))
+	{
+		return;
+	}
+
+	ApplyUpgrade(CurrentUpgradeOptions[Index]);
+	CurrentUpgradeOptions.Empty();
+	bSelectingUpgrade = false;
+}
+
+void AAsteroidSurvivorGameMode::ApplyUpgrade(const FUpgradeOption& Upgrade)
+{
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(PlayerPawn);
+	if (!Ship)
+	{
+		return;
+	}
+
+	switch (Upgrade.Type)
+	{
+	case EUpgradeType::MaxHealth:
+		Ship->UpgradeMaxHealth(25.0f);
+		break;
+	case EUpgradeType::SpeedBoost:
+		Ship->UpgradeSpeed(1.15f);
+		break;
+	case EUpgradeType::TurnRate:
+		Ship->UpgradeTurnRate(1.20f);
+		break;
+	case EUpgradeType::PassiveHealing:
+		Ship->UpgradePassiveHealing(2.0f);
+		break;
+	case EUpgradeType::Shield:
+		Ship->UpgradeShield();
+		break;
+	case EUpgradeType::FireRate:
+		Ship->UpgradeFireRate(1.25f);
+		break;
+	case EUpgradeType::ThoriumMagnet:
+		Ship->UpgradeThoriumMagnet(1.50f);
+		break;
+	}
+}
+
+TArray<FUpgradeOption> AAsteroidSurvivorGameMode::BuildUpgradePool()
+{
+	TArray<FUpgradeOption> Pool;
+
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::MaxHealth;
+		Opt.Name = TEXT("Hull Reinforcement");
+		Opt.Description = TEXT("+25 Max Health & full repair");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::SpeedBoost;
+		Opt.Name = TEXT("Thruster Boost");
+		Opt.Description = TEXT("+15% thrust & max speed");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::TurnRate;
+		Opt.Name = TEXT("Gyro Stabiliser");
+		Opt.Description = TEXT("+20% rotation speed");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::PassiveHealing;
+		Opt.Name = TEXT("Nano Repair Bots");
+		Opt.Description = TEXT("+2 HP/s passive regeneration");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::Shield;
+		Opt.Name = TEXT("Energy Shield");
+		Opt.Description = TEXT("Absorbs one hit, recharges over time");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::FireRate;
+		Opt.Name = TEXT("Rapid Fire");
+		Opt.Description = TEXT("+25% fire rate");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::ThoriumMagnet;
+		Opt.Name = TEXT("Thorium Magnet");
+		Opt.Description = TEXT("+50% Thorium pull radius");
+		Pool.Add(Opt);
+	}
+
+	return Pool;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Game over
+// ────────────────────────────────────────────────────────────────────────────
 
 void AAsteroidSurvivorGameMode::TriggerGameOver()
 {
@@ -96,35 +219,6 @@ void AAsteroidSurvivorGameMode::TriggerGameOver()
 	if (PC)
 	{
 		PC->DisableInput(PC);
-	}
-}
-
-void AAsteroidSurvivorGameMode::RespawnPlayer()
-{
-	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
-	if (!PC)
-	{
-		return;
-	}
-
-	// Destroy old pawn if present
-	APawn* OldPawn = PC->GetPawn();
-	if (OldPawn)
-	{
-		OldPawn->Destroy();
-	}
-
-	// Find a start spot and respawn
-	AActor* StartSpot = FindPlayerStart(PC);
-	FVector SpawnLocation = StartSpot ? StartSpot->GetActorLocation() : FVector::ZeroVector;
-	FRotator SpawnRotation = StartSpot ? StartSpot->GetActorRotation() : FRotator::ZeroRotator;
-
-	AAsteroidSurvivorShip* NewShip = GetWorld()->SpawnActor<AAsteroidSurvivorShip>(
-		AAsteroidSurvivorShip::StaticClass(), SpawnLocation, SpawnRotation);
-
-	if (NewShip)
-	{
-		PC->Possess(NewShip);
 	}
 }
 

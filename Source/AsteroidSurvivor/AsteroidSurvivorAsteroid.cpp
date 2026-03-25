@@ -3,6 +3,7 @@
 #include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorProjectile.h"
 #include "AsteroidSurvivorGameMode.h"
+#include "AsteroidSurvivorThoriumPickup.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -47,17 +48,30 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 
 	GraceTimer = SpawnGracePeriod;
 
-	// Apply a rocky brownish-orange emissive color
+	// Randomly decide if this asteroid contains Thorium
+	bContainsThorium = (FMath::FRand() < ThoriumDropChance);
+
+	// Apply a rocky brownish-orange emissive color.
+	// Thorium-bearing asteroids get a subtle cyan tint to hint at their contents.
 	if (AsteroidMesh)
 	{
 		UMaterialInstanceDynamic* DynMat = AsteroidMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor AsteroidColor(1.5f, 0.8f, 0.3f, 1.0f);
+			FLinearColor AsteroidColor(1.5f, 0.8f, 0.3f, 1.0f);
+			FLinearColor EmissiveColor = AsteroidColor * 0.3f;
+
+			if (bContainsThorium)
+			{
+				// Add a subtle cyan/teal tint to indicate Thorium content
+				AsteroidColor = FLinearColor(1.2f, 1.0f, 0.5f, 1.0f);
+				EmissiveColor = FLinearColor(0.4f, 0.8f, 1.0f, 1.0f) * 0.3f;
+			}
+
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), AsteroidColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), AsteroidColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), AsteroidColor * 0.3f);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), AsteroidColor * 0.3f);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveColor);
 		}
 	}
 }
@@ -121,6 +135,17 @@ float AAsteroidSurvivorAsteroid::GetMeshScale() const
 	}
 }
 
+float AAsteroidSurvivorAsteroid::GetDamageAmount() const
+{
+	switch (AsteroidSize)
+	{
+	case EAsteroidSize::Large:  return LargeDamage;
+	case EAsteroidSize::Medium: return MediumDamage;
+	case EAsteroidSize::Small:  return SmallDamage;
+	default:                    return MediumDamage;
+	}
+}
+
 void AAsteroidSurvivorAsteroid::ApplySizeProperties()
 {
 	if (CollisionSphere)
@@ -138,13 +163,19 @@ void AAsteroidSurvivorAsteroid::ApplySizeProperties()
 // Explosion / splitting
 // ────────────────────────────────────────────────────────────────────────────
 
-void AAsteroidSurvivorAsteroid::Explode()
+void AAsteroidSurvivorAsteroid::Explode(bool bDropThorium)
 {
 	if (bExploding)
 	{
 		return;
 	}
 	bExploding = true;
+
+	// Drop Thorium pickups if this asteroid contains Thorium and was hit by a projectile
+	if (bDropThorium && bContainsThorium)
+	{
+		SpawnThoriumPickups();
+	}
 
 	// Determine whether this size can split into a smaller tier
 	EAsteroidSize ChildSize = EAsteroidSize::Small;
@@ -196,6 +227,54 @@ void AAsteroidSurvivorAsteroid::Explode()
 	Destroy();
 }
 
+void AAsteroidSurvivorAsteroid::SpawnThoriumPickups()
+{
+	// Determine pickup count and energy per pickup based on asteroid size
+	int32 PickupCount = 0;
+	int32 ThoriumPerPickup = 0;
+
+	switch (AsteroidSize)
+	{
+	case EAsteroidSize::Large:
+		PickupCount = FMath::RandRange(3, 5);
+		ThoriumPerPickup = LargeThoriumPerPickup;
+		break;
+	case EAsteroidSize::Medium:
+		PickupCount = FMath::RandRange(2, 3);
+		ThoriumPerPickup = MediumThoriumPerPickup;
+		break;
+	case EAsteroidSize::Small:
+		PickupCount = FMath::RandRange(1, 2);
+		ThoriumPerPickup = SmallThoriumPerPickup;
+		break;
+	}
+
+	for (int32 i = 0; i < PickupCount; ++i)
+	{
+		// Scatter pickups outward from the explosion center
+		const float RandomAngle = FMath::FRandRange(0.0f, 360.0f);
+		FVector ScatterDir(
+			FMath::Cos(FMath::DegreesToRadians(RandomAngle)),
+			FMath::Sin(FMath::DegreesToRadians(RandomAngle)),
+			0.0f);
+
+		const FVector SpawnLoc = GetActorLocation() + ScatterDir * FMath::FRandRange(10.0f, 40.0f);
+		const FVector DriftVelocity = ScatterDir * FMath::FRandRange(80.0f, 200.0f);
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AAsteroidSurvivorThoriumPickup* Pickup = GetWorld()->SpawnActor<AAsteroidSurvivorThoriumPickup>(
+			AAsteroidSurvivorThoriumPickup::StaticClass(), SpawnLoc, FRotator::ZeroRotator, SpawnParams);
+
+		if (Pickup)
+		{
+			Pickup->InitPickup(ThoriumPerPickup, DriftVelocity);
+		}
+	}
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Overlap handling
 // ────────────────────────────────────────────────────────────────────────────
@@ -231,7 +310,7 @@ void AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin(
 			GM->AddScore(Points);
 		}
 
-		Explode();
+		Explode(/*bDropThorium=*/ true);
 		return;
 	}
 
@@ -242,7 +321,7 @@ void AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin(
 		// Explode only if the other asteroid is the same size or larger
 		if (OtherAsteroid->GetAsteroidSize() >= AsteroidSize)
 		{
-			Explode();
+			Explode(/*bDropThorium=*/ false);
 		}
 		return;
 	}

@@ -55,6 +55,19 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	ShipMesh->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	ShipMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.7f));
 
+	// Shield visual mesh (translucent sphere around the ship)
+	ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShieldMesh"));
+	ShieldMesh->SetupAttachment(CollisionSphere);
+	ShieldMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> ShieldSphereMesh(
+		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	if (ShieldSphereMesh.Succeeded())
+	{
+		ShieldMesh->SetStaticMesh(ShieldSphereMesh.Object);
+	}
+	ShieldMesh->SetRelativeScale3D(FVector(1.2f));
+	ShieldMesh->SetVisibility(false);
+
 	// Top-down camera rig – attached to the collision sphere root so it follows
 	// the actor position without being affected by mesh rotation.
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -84,6 +97,10 @@ void AAsteroidSurvivorShip::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Initialise health
+	MaxHealth = BaseMaxHealth;
+	CurrentHealth = MaxHealth;
+
 	// Apply a bright metallic blue ship material for a more spaceship-like look.
 	// Use HDR emissive values and multiple parameter names for material compatibility.
 	if (ShipMesh)
@@ -96,6 +113,20 @@ void AAsteroidSurvivorShip::BeginPlay()
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShipColor);
+		}
+	}
+
+	// Shield material – translucent cyan glow
+	if (ShieldMesh)
+	{
+		UMaterialInstanceDynamic* ShieldMat = ShieldMesh->CreateDynamicMaterialInstance(0);
+		if (ShieldMat)
+		{
+			const FLinearColor ShieldColor(0.3f, 1.5f, 3.0f, 0.25f);
+			ShieldMat->SetVectorParameterValue(FName(TEXT("Color")), ShieldColor);
+			ShieldMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShieldColor);
+			ShieldMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShieldColor * 0.5f);
+			ShieldMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShieldColor * 0.5f);
 		}
 	}
 
@@ -119,34 +150,63 @@ void AAsteroidSurvivorShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Apply drag (frame-rate independent).
-	// Drag is defined as a per-frame retention factor at 60 FPS.
-	// Normalise it so the behaviour is consistent at any frame rate.
-	const float ReferenceFrameRate = 60.0f;
-	Velocity *= FMath::Pow(Drag, DeltaTime * ReferenceFrameRate);
+	// Check if upgrade selection is active – skip gameplay updates
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	const bool bUpgradeActive = GM && GM->IsSelectingUpgrade();
 
-	// Clamp speed
-	if (Velocity.SizeSquared() > MaxSpeed * MaxSpeed)
+	if (!bUpgradeActive)
 	{
-		Velocity = Velocity.GetSafeNormal() * MaxSpeed;
-	}
+		// Apply drag (frame-rate independent).
+		// Drag is defined as a per-frame retention factor at 60 FPS.
+		// Normalise it so the behaviour is consistent at any frame rate.
+		const float ReferenceFrameRate = 60.0f;
+		Velocity *= FMath::Pow(Drag, DeltaTime * ReferenceFrameRate);
 
-	// Move ship with sweep to detect overlaps along the movement path
-	FVector NewLocation = GetActorLocation() + Velocity * DeltaTime;
-	SetActorLocation(NewLocation, true);
+		// Effective stats with upgrade multipliers
+		const float EffectiveMaxSpeed = BaseMaxSpeed * SpeedMultiplier;
 
-	// Auto-fire while button is held
-	if (bFiring)
-	{
-		FireTimer -= DeltaTime;
-		if (FireTimer <= 0.0f)
+		// Clamp speed
+		if (Velocity.SizeSquared() > EffectiveMaxSpeed * EffectiveMaxSpeed)
 		{
-			Fire();
-			FireTimer = FireRate;
+			Velocity = Velocity.GetSafeNormal() * EffectiveMaxSpeed;
+		}
+
+		// Move ship with sweep to detect overlaps along the movement path
+		FVector NewLocation = GetActorLocation() + Velocity * DeltaTime;
+		SetActorLocation(NewLocation, true);
+
+		// Auto-fire while button is held
+		if (bFiring)
+		{
+			const float EffectiveFireRate = BaseFireRate / FireRateMultiplier;
+			FireTimer -= DeltaTime;
+			if (FireTimer <= 0.0f)
+			{
+				Fire();
+				FireTimer = EffectiveFireRate;
+			}
+		}
+
+		// Passive healing
+		if (PassiveHealRate > 0.0f && CurrentHealth < MaxHealth && CurrentHealth > 0.0f)
+		{
+			CurrentHealth = FMath::Min(CurrentHealth + PassiveHealRate * DeltaTime, MaxHealth);
+		}
+
+		// Shield recharge
+		if (bHasShieldUpgrade && !bShieldActive)
+		{
+			ShieldRechargeTimer -= DeltaTime;
+			if (ShieldRechargeTimer <= 0.0f)
+			{
+				bShieldActive = true;
+				UpdateShieldVisual();
+			}
 		}
 	}
 
-	// Invulnerability countdown and blinking
+	// Invulnerability countdown and blinking (always tick, even during upgrade select)
 	if (bInvulnerable)
 	{
 		InvulnerabilityTimer -= DeltaTime;
@@ -193,26 +253,61 @@ void AAsteroidSurvivorShip::SetupPlayerInputComponent(UInputComponent* PlayerInp
 			EIC->BindAction(FireAction, ETriggerEvent::Started,  this, &AAsteroidSurvivorShip::StartFire);
 			EIC->BindAction(FireAction, ETriggerEvent::Completed, this, &AAsteroidSurvivorShip::StopFire);
 		}
+		if (SelectUpgrade1Action)
+		{
+			EIC->BindAction(SelectUpgrade1Action, ETriggerEvent::Started, this, &AAsteroidSurvivorShip::OnSelectUpgrade1);
+		}
+		if (SelectUpgrade2Action)
+		{
+			EIC->BindAction(SelectUpgrade2Action, ETriggerEvent::Started, this, &AAsteroidSurvivorShip::OnSelectUpgrade2);
+		}
+		if (SelectUpgrade3Action)
+		{
+			EIC->BindAction(SelectUpgrade3Action, ETriggerEvent::Started, this, &AAsteroidSurvivorShip::OnSelectUpgrade3);
+		}
 	}
 }
 
 void AAsteroidSurvivorShip::Move(const FInputActionValue& Value)
 {
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
+
 	float ThrustInput = Value.Get<float>();
 	FVector ForwardDir = GetActorForwardVector();
-	Velocity += ForwardDir * ThrustInput * ThrustForce * GetWorld()->GetDeltaSeconds();
+	const float EffectiveThrust = BaseThrustForce * SpeedMultiplier;
+	Velocity += ForwardDir * ThrustInput * EffectiveThrust * GetWorld()->GetDeltaSeconds();
 }
 
 void AAsteroidSurvivorShip::Rotate(const FInputActionValue& Value)
 {
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
+
 	float RotInput = Value.Get<float>();
 	FRotator NewRotation = GetActorRotation();
-	NewRotation.Yaw += RotInput * RotationSpeed * GetWorld()->GetDeltaSeconds();
+	const float EffectiveRotSpeed = BaseRotationSpeed * TurnRateMultiplier;
+	NewRotation.Yaw += RotInput * EffectiveRotSpeed * GetWorld()->GetDeltaSeconds();
 	SetActorRotation(NewRotation);
 }
 
 void AAsteroidSurvivorShip::StartFire()
 {
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
+
 	bFiring = true;
 	FireTimer = 0.0f; // fire immediately on press
 }
@@ -241,6 +336,68 @@ void AAsteroidSurvivorShip::Fire()
 		ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
 }
 
+void AAsteroidSurvivorShip::OnSelectUpgrade1()
+{
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		GM->SelectUpgrade(0);
+	}
+}
+
+void AAsteroidSurvivorShip::OnSelectUpgrade2()
+{
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		GM->SelectUpgrade(1);
+	}
+}
+
+void AAsteroidSurvivorShip::OnSelectUpgrade3()
+{
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		GM->SelectUpgrade(2);
+	}
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Health & damage
+// ────────────────────────────────────────────────────────────────────────────
+
+bool AAsteroidSurvivorShip::ApplyDamageToShip(float DamageAmount)
+{
+	if (bInvulnerable)
+	{
+		return false;
+	}
+
+	// Shield absorbs the hit entirely
+	if (bShieldActive)
+	{
+		bShieldActive = false;
+		ShieldRechargeTimer = ShieldRechargeTime;
+		UpdateShieldVisual();
+		StartInvulnerability();
+		return false;
+	}
+
+	CurrentHealth -= DamageAmount;
+	if (CurrentHealth <= 0.0f)
+	{
+		CurrentHealth = 0.0f;
+		return true; // Ship destroyed
+	}
+
+	StartInvulnerability();
+	return false;
+}
+
 void AAsteroidSurvivorShip::OnShipOverlapBegin(UPrimitiveComponent* OverlappedComp,
                                                 AActor* OtherActor,
                                                 UPrimitiveComponent* OtherComp,
@@ -265,24 +422,21 @@ void AAsteroidSurvivorShip::OnShipOverlapBegin(UPrimitiveComponent* OverlappedCo
 		return;
 	}
 
+	// Determine damage based on asteroid size
+	const float Damage = Asteroid->GetDamageAmount();
+
 	// The asteroid disappears on contact with the ship
 	Asteroid->Destroy();
 
-	// Notify game mode to lose a life
+	// Apply damage to ship
+	const bool bDestroyed = ApplyDamageToShip(Damage);
+
 	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
 	    UGameplayStatics::GetGameMode(this));
-	if (GM)
+	if (GM && bDestroyed)
 	{
-		GM->OnPlayerShipHit();
-
-		if (GM->IsGameOver())
-		{
-			Destroy();
-		}
-		else
-		{
-			StartInvulnerability();
-		}
+		GM->OnPlayerShipDestroyed();
+		Destroy();
 	}
 }
 
@@ -293,6 +447,61 @@ void AAsteroidSurvivorShip::StartInvulnerability()
 	BlinkTimer = BlinkInterval;
 	bBlinkVisible = true;
 }
+
+void AAsteroidSurvivorShip::UpdateShieldVisual()
+{
+	if (ShieldMesh)
+	{
+		ShieldMesh->SetVisibility(bShieldActive);
+	}
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Upgrades
+// ────────────────────────────────────────────────────────────────────────────
+
+void AAsteroidSurvivorShip::UpgradeMaxHealth(float BonusHealth)
+{
+	MaxHealth += BonusHealth;
+	CurrentHealth = MaxHealth; // full heal on upgrade
+}
+
+void AAsteroidSurvivorShip::UpgradeSpeed(float Multiplier)
+{
+	SpeedMultiplier *= Multiplier;
+}
+
+void AAsteroidSurvivorShip::UpgradeTurnRate(float Multiplier)
+{
+	TurnRateMultiplier *= Multiplier;
+}
+
+void AAsteroidSurvivorShip::UpgradePassiveHealing(float HealPerSecond)
+{
+	PassiveHealRate += HealPerSecond;
+}
+
+void AAsteroidSurvivorShip::UpgradeShield()
+{
+	bHasShieldUpgrade = true;
+	bShieldActive = true;
+	ShieldRechargeTimer = 0.0f;
+	UpdateShieldVisual();
+}
+
+void AAsteroidSurvivorShip::UpgradeFireRate(float Multiplier)
+{
+	FireRateMultiplier *= Multiplier;
+}
+
+void AAsteroidSurvivorShip::UpgradeThoriumMagnet(float Multiplier)
+{
+	ThoriumMagnetMultiplier *= Multiplier;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Input setup
+// ────────────────────────────────────────────────────────────────────────────
 
 void AAsteroidSurvivorShip::RegisterInputMappingContext()
 {
@@ -319,6 +528,16 @@ void AAsteroidSurvivorShip::SetupDefaultInputActions()
 	// Fire (Boolean: pressed / released)
 	FireAction = NewObject<UInputAction>(this, TEXT("IA_DefaultFire"));
 	FireAction->ValueType = EInputActionValueType::Boolean;
+
+	// Upgrade selection actions (Boolean: pressed)
+	SelectUpgrade1Action = NewObject<UInputAction>(this, TEXT("IA_SelectUpgrade1"));
+	SelectUpgrade1Action->ValueType = EInputActionValueType::Boolean;
+
+	SelectUpgrade2Action = NewObject<UInputAction>(this, TEXT("IA_SelectUpgrade2"));
+	SelectUpgrade2Action->ValueType = EInputActionValueType::Boolean;
+
+	SelectUpgrade3Action = NewObject<UInputAction>(this, TEXT("IA_SelectUpgrade3"));
+	SelectUpgrade3Action->ValueType = EInputActionValueType::Boolean;
 
 	// Mapping context with default keyboard bindings
 	DefaultMappingContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Default"));
@@ -352,4 +571,9 @@ void AAsteroidSurvivorShip::SetupDefaultInputActions()
 	// -- Fire (Space / Left mouse button) --
 	DefaultMappingContext->MapKey(FireAction, EKeys::SpaceBar);
 	DefaultMappingContext->MapKey(FireAction, EKeys::LeftMouseButton);
+
+	// -- Upgrade selection (1, 2, 3 keys) --
+	DefaultMappingContext->MapKey(SelectUpgrade1Action, EKeys::One);
+	DefaultMappingContext->MapKey(SelectUpgrade2Action, EKeys::Two);
+	DefaultMappingContext->MapKey(SelectUpgrade3Action, EKeys::Three);
 }
