@@ -148,7 +148,8 @@ FVector AEnemyShipBase::ComputeAsteroidAvoidance() const
 		{
 			// Stronger repulsion when closer (quadratic falloff)
 			const float NormDist = Distance / AsteroidAvoidanceRadius;
-			const float Strength = (1.0f - NormDist) * (1.0f - NormDist);
+			const float Falloff = 1.0f - NormDist;
+			const float Strength = Falloff * Falloff;
 			AvoidanceForce -= ToAsteroid.GetSafeNormal() * Strength;
 		}
 	}
