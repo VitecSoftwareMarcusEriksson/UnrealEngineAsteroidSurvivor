@@ -26,10 +26,6 @@ Saved/
 # Rider
 .idea/
 
-# Content-only packages (binaries generated at cook time)
-*.uasset
-*.umap
-
 # OS-specific
 .DS_Store
 Thumbs.db
