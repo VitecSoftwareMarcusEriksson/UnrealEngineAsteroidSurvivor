@@ -23,8 +23,17 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	// Root – static mesh representing the ship hull
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
 	SetRootComponent(ShipMesh);
-	ShipMesh->SetCollisionProfileName(TEXT("Pawn"));
 	ShipMesh->SetSimulatePhysics(false);
+
+	// Set up overlap-based collision so the ship can move freely
+	// and detect asteroid hits via overlap events.
+	ShipMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ShipMesh->SetCollisionObjectType(ECC_Pawn);
+	ShipMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ShipMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	ShipMesh->SetGenerateOverlapEvents(true);
+
+	ShipMesh->OnComponentBeginOverlap.AddDynamic(this, &AAsteroidSurvivorShip::OnShipOverlapBegin);
 
 	// Assign a default visible mesh (cone shape ≈ simple ship silhouette)
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultShipMesh(
@@ -65,8 +74,6 @@ void AAsteroidSurvivorShip::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Health = MaxHealth;
-
 	// Register Enhanced Input mapping context
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -91,9 +98,9 @@ void AAsteroidSurvivorShip::Tick(float DeltaTime)
 		Velocity = Velocity.GetSafeNormal() * MaxSpeed;
 	}
 
-	// Move ship
+	// Move ship (no sweep – collision is handled via overlap events)
 	FVector NewLocation = GetActorLocation() + Velocity * DeltaTime;
-	SetActorLocation(NewLocation, true);
+	SetActorLocation(NewLocation, false);
 
 	// Auto-fire while button is held
 	if (bFiring)
@@ -103,6 +110,33 @@ void AAsteroidSurvivorShip::Tick(float DeltaTime)
 		{
 			Fire();
 			FireTimer = FireRate;
+		}
+	}
+
+	// Invulnerability countdown and blinking
+	if (bInvulnerable)
+	{
+		InvulnerabilityTimer -= DeltaTime;
+		BlinkTimer -= DeltaTime;
+
+		if (BlinkTimer <= 0.0f)
+		{
+			bBlinkVisible = !bBlinkVisible;
+			if (ShipMesh)
+			{
+				ShipMesh->SetVisibility(bBlinkVisible);
+			}
+			BlinkTimer = BlinkInterval;
+		}
+
+		if (InvulnerabilityTimer <= 0.0f)
+		{
+			bInvulnerable = false;
+			bBlinkVisible = true;
+			if (ShipMesh)
+			{
+				ShipMesh->SetVisibility(true);
+			}
 		}
 	}
 }
@@ -174,37 +208,51 @@ void AAsteroidSurvivorShip::Fire()
 		ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
 }
 
-void AAsteroidSurvivorShip::TakeDamage_Ship(int32 DamageAmount)
+void AAsteroidSurvivorShip::OnShipOverlapBegin(UPrimitiveComponent* OverlappedComp,
+                                                AActor* OtherActor,
+                                                UPrimitiveComponent* OtherComp,
+                                                int32 OtherBodyIndex,
+                                                bool bFromSweep,
+                                                const FHitResult& SweepResult)
 {
-	Health -= DamageAmount;
-	if (Health <= 0)
+	if (bInvulnerable)
 	{
-		Die();
+		return;
+	}
+
+	AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor);
+	if (!Asteroid)
+	{
+		return;
+	}
+
+	// Destroy the asteroid on contact (no split, no score)
+	Asteroid->Destroy();
+
+	// Notify game mode to lose a life
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+	    UGameplayStatics::GetGameMode(this));
+	if (GM)
+	{
+		GM->OnPlayerShipHit();
+
+		if (GM->IsGameOver())
+		{
+			Destroy();
+		}
+		else
+		{
+			StartInvulnerability();
+		}
 	}
 }
 
-void AAsteroidSurvivorShip::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other,
-                                       UPrimitiveComponent* OtherComp, bool bSelfMoved,
-                                       FVector HitLocation, FVector HitNormal,
-                                       FVector NormalImpulse, const FHitResult& Hit)
+void AAsteroidSurvivorShip::StartInvulnerability()
 {
-	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
-
-	if (Other && Other->IsA<class AAsteroidSurvivorAsteroid>())
-	{
-		TakeDamage_Ship(1);
-	}
-}
-
-void AAsteroidSurvivorShip::Die()
-{
-	if (AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
-	    UGameplayStatics::GetGameMode(this)))
-	{
-		GM->OnPlayerShipDestroyed();
-	}
-
-	Destroy();
+	bInvulnerable = true;
+	InvulnerabilityTimer = InvulnerabilityDuration;
+	BlinkTimer = BlinkInterval;
+	bBlinkVisible = true;
 }
 
 void AAsteroidSurvivorShip::SetupDefaultInputActions()

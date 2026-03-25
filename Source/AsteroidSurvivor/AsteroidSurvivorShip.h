@@ -30,13 +30,6 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	virtual void NotifyHit(class UPrimitiveComponent* MyComp, AActor* Other,
-	                        class UPrimitiveComponent* OtherComp, bool bSelfMoved,
-	                        FVector HitLocation, FVector HitNormal,
-	                        FVector NormalImpulse, const FHitResult& Hit) override;
-
-	/** Called to apply damage to the ship */
-	void TakeDamage_Ship(int32 DamageAmount);
 
 protected:
 	virtual void BeginPlay() override;
@@ -93,9 +86,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<class AAsteroidSurvivorProjectile> ProjectileClass;
 
-	/** Maximum hit points */
+	/** Duration of invulnerability after being hit (seconds) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
-	int32 MaxHealth = 3;
+	float InvulnerabilityDuration = 3.0f;
+
+	/** Blink interval during invulnerability (seconds) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
+	float BlinkInterval = 0.15f;
 
 private:
 	// Input handlers
@@ -106,11 +103,22 @@ private:
 	void Fire();
 
 	FVector Velocity = FVector::ZeroVector;
-	int32 Health = 0;
 	float FireTimer = 0.0f;
 	bool bFiring = false;
 
-	void Die();
+	// Invulnerability state
+	bool bInvulnerable = false;
+	float InvulnerabilityTimer = 0.0f;
+	float BlinkTimer = 0.0f;
+	bool bBlinkVisible = true;
+
+	void StartInvulnerability();
+
+	/** Overlap handler for asteroid collision */
+	UFUNCTION()
+	void OnShipOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	                        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+	                        bool bFromSweep, const FHitResult& SweepResult);
 
 	/** Creates default Enhanced Input actions and mapping context in the constructor. */
 	void SetupDefaultInputActions();
