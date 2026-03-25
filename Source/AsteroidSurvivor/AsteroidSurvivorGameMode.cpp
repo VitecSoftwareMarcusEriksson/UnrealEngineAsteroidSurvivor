@@ -72,6 +72,14 @@ void AAsteroidSurvivorGameMode::Tick(float DeltaSeconds)
 			StartWave(CurrentWave);
 		}
 	}
+
+	// Safety check: advance wave if all asteroids are cleared (e.g. by ship collision)
+	if (!bGameOver && !bWaitingForNextWave && AsteroidSpawner &&
+	    AsteroidSpawner->GetActiveAsteroidCount() == 0)
+	{
+		bWaitingForNextWave = true;
+		NextWaveTimer = NextWaveDelay;
+	}
 }
 
 void AAsteroidSurvivorGameMode::OnPlayerShipDestroyed()
@@ -85,6 +93,15 @@ void AAsteroidSurvivorGameMode::OnPlayerShipDestroyed()
 	{
 		bWaitingForRespawn = true;
 		RespawnTimer = RespawnDelay;
+	}
+}
+
+void AAsteroidSurvivorGameMode::OnPlayerShipHit()
+{
+	Lives--;
+	if (Lives <= 0)
+	{
+		TriggerGameOver();
 	}
 }
 

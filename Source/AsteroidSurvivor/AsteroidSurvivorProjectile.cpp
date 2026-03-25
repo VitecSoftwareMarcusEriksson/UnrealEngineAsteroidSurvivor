@@ -5,6 +5,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 
 AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
@@ -13,10 +14,16 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
 	CollisionSphere->InitSphereRadius(12.0f);
-	CollisionSphere->SetCollisionProfileName(TEXT("Projectile"));
 	SetRootComponent(CollisionSphere);
 
-	CollisionSphere->OnComponentHit.AddDynamic(this, &AAsteroidSurvivorProjectile::OnHit);
+	// Set up overlap-based collision so the projectile can move freely
+	// and detect asteroid hits via overlap events.
+	CollisionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionSphere->SetCollisionObjectType(ECC_WorldDynamic);
+	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	CollisionSphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	CollisionSphere->SetGenerateOverlapEvents(true);
+
 	CollisionSphere->OnComponentBeginOverlap.AddDynamic(
 		this, &AAsteroidSurvivorProjectile::OnOverlapBegin);
 
@@ -31,20 +38,31 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 	{
 		ProjectileMesh->SetStaticMesh(SphereMeshAsset.Object);
 	}
-	ProjectileMesh->SetRelativeScale3D(FVector(0.25f));
+	ProjectileMesh->SetRelativeScale3D(FVector(0.5f));
 
 	// Bright green glow so the projectile is easy to see
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(3000.0f);
+	GlowLight->SetIntensity(5000.0f);
 	GlowLight->SetLightColor(FLinearColor(0.0f, 1.0f, 0.3f));
-	GlowLight->SetAttenuationRadius(150.0f);
+	GlowLight->SetAttenuationRadius(250.0f);
 	GlowLight->SetCastShadows(false);
 }
 
 void AAsteroidSurvivorProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Create a bright emissive material so the projectile is clearly visible
+	if (ProjectileMesh)
+	{
+		UMaterialInstanceDynamic* DynMat = ProjectileMesh->CreateDynamicMaterialInstance(0);
+		if (DynMat)
+		{
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), FLinearColor(0.0f, 1.0f, 0.3f, 1.0f));
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), FLinearColor(0.0f, 10.0f, 3.0f, 1.0f));
+		}
+	}
 }
 
 void AAsteroidSurvivorProjectile::Tick(float DeltaTime)
@@ -53,7 +71,7 @@ void AAsteroidSurvivorProjectile::Tick(float DeltaTime)
 
 	// Move forward
 	FVector Delta = GetActorForwardVector() * Speed * DeltaTime;
-	AddActorWorldOffset(Delta, true);
+	AddActorWorldOffset(Delta, false);
 
 	// Lifetime
 	LifeTimer += DeltaTime;
@@ -72,8 +90,8 @@ void AAsteroidSurvivorProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* Ot
 		if (AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor))
 		{
 			Asteroid->TakeDamage_Asteroid(Damage);
+			Destroy();
 		}
-		Destroy();
 	}
 }
 
@@ -89,7 +107,7 @@ void AAsteroidSurvivorProjectile::OnOverlapBegin(UPrimitiveComponent* Overlapped
 		if (AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor))
 		{
 			Asteroid->TakeDamage_Asteroid(Damage);
+			Destroy();
 		}
-		Destroy();
 	}
 }

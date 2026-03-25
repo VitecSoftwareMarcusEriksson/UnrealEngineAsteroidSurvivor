@@ -27,6 +27,9 @@ public:
 	/** Called when the player ship is destroyed */
 	void OnPlayerShipDestroyed();
 
+	/** Called when the player ship is hit by an asteroid (loses a life) */
+	void OnPlayerShipHit();
+
 	/** Called when an asteroid is destroyed, awards points */
 	void OnAsteroidDestroyed(int32 Points);
 
