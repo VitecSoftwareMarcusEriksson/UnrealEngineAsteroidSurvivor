@@ -5,6 +5,8 @@
 #include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorGameMode.h"
 #include "AsteroidSurvivorTrailParticle.h"
+#include "EnemyShipBase.h"
+#include "EnemyProjectile.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -18,6 +20,7 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "Kismet/GameplayStatics.h"
+#include "EngineUtils.h"
 
 AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 {
@@ -356,6 +359,9 @@ void AAsteroidSurvivorShip::Fire()
 
 	GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
 		ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
+
+	// Fire any extra weapons from the arsenal
+	FireExtraWeapons();
 }
 
 void AAsteroidSurvivorShip::OnSelectUpgrade1()
@@ -437,18 +443,45 @@ void AAsteroidSurvivorShip::OnShipOverlapBegin(UPrimitiveComponent* OverlappedCo
 		return;
 	}
 
-	// Only respond to asteroid collisions – ignore projectiles and other actors.
+	float Damage = 0.0f;
+	bool bDestroyOther = false;
+
+	// ── Asteroid collision ──────────────────────────────────────────────────
 	AAsteroidSurvivorAsteroid* Asteroid = Cast<AAsteroidSurvivorAsteroid>(OtherActor);
-	if (!Asteroid)
+	if (Asteroid)
+	{
+		Damage = Asteroid->GetDamageAmount();
+		bDestroyOther = true;
+	}
+
+	// ── Enemy ship collision (contact damage) ───────────────────────────────
+	AEnemyShipBase* EnemyShip = Cast<AEnemyShipBase>(OtherActor);
+	if (EnemyShip)
+	{
+		Damage = EnemyShip->GetContactDamage();
+		// Enemy ships are not destroyed on contact – they persist and the
+		// player bounces off with invulnerability frames.
+		bDestroyOther = false;
+	}
+
+	// ── Enemy projectile hit ────────────────────────────────────────────────
+	AEnemyProjectile* EnemyProj = Cast<AEnemyProjectile>(OtherActor);
+	if (EnemyProj)
+	{
+		Damage = EnemyProj->GetDamage();
+		bDestroyOther = true;
+	}
+
+	// If no recognised damage source, ignore
+	if (Damage <= 0.0f)
 	{
 		return;
 	}
 
-	// Determine damage based on asteroid size
-	const float Damage = Asteroid->GetDamageAmount();
-
-	// The asteroid disappears on contact with the ship
-	Asteroid->Destroy();
+	if (bDestroyOther)
+	{
+		OtherActor->Destroy();
+	}
 
 	// Apply damage to ship
 	const bool bDestroyed = ApplyDamageToShip(Damage);
@@ -519,6 +552,232 @@ void AAsteroidSurvivorShip::UpgradeFireRate(float Multiplier)
 void AAsteroidSurvivorShip::UpgradeThoriumMagnet(float Multiplier)
 {
 	ThoriumMagnetMultiplier *= Multiplier;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Weapon arsenal
+// ────────────────────────────────────────────────────────────────────────────
+
+void AAsteroidSurvivorShip::AddOrUpgradeWeapon(EWeaponType Type)
+{
+	if (int32* Level = WeaponArsenal.Find(Type))
+	{
+		// Stack the upgrade – max level 3
+		*Level = FMath::Min(*Level + 1, 3);
+	}
+	else
+	{
+		// New weapon acquired at level 1
+		WeaponArsenal.Add(Type, 1);
+	}
+
+	// Rapid Blaster stacks on top of existing fire rate multiplier
+	if (Type == EWeaponType::RapidBlaster)
+	{
+		FireRateMultiplier *= 1.30f; // +30% fire rate per level
+	}
+}
+
+void AAsteroidSurvivorShip::OnScrapCollected(int32 TotalScrap)
+{
+	// Every 25 scrap collected, enhance the base blaster
+	const int32 Threshold = 25;
+	const int32 NewLevel = 1 + TotalScrap / Threshold;
+	if (NewLevel > BlasterLevel)
+	{
+		BlasterLevel = NewLevel;
+		// Each blaster level doesn't change the fire method directly;
+		// FireExtraWeapons checks the level for additional projectiles.
+	}
+}
+
+void AAsteroidSurvivorShip::FireExtraWeapons()
+{
+	if (!ProjectileClass)
+	{
+		return;
+	}
+
+	// Enhanced blaster: at level 2+, fire additional projectiles with slight angle offset
+	if (BlasterLevel >= 2)
+	{
+		const float BlasterSpreadAngle = 8.0f; // Degrees between extra blaster shots
+		const int32 ExtraShots = FMath::Min(BlasterLevel - 1, 3); // up to 3 extra
+		for (int32 i = 0; i < ExtraShots; ++i)
+		{
+			float AngleOffset = (i + 1) * BlasterSpreadAngle * ((i % 2 == 0) ? 1.0f : -1.0f);
+			FRotator ShotRot = GetActorRotation();
+			ShotRot.Yaw += AngleOffset;
+			FVector ShotLoc = GetActorLocation() + ShotRot.RotateVector(MuzzleOffset);
+
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = this;
+			SpawnParams.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+				ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+		}
+	}
+
+	// Fire weapons from the arsenal
+	for (const auto& WeaponEntry : WeaponArsenal)
+	{
+		switch (WeaponEntry.Key)
+		{
+		case EWeaponType::SpreadShot:
+			FireSpreadShot(WeaponEntry.Value);
+			break;
+		case EWeaponType::RearTurret:
+			FireRearTurret(WeaponEntry.Value);
+			break;
+		case EWeaponType::HomingMissile:
+			FireHomingMissile(WeaponEntry.Value);
+			break;
+		case EWeaponType::RapidBlaster:
+			// Handled passively via FireRateMultiplier in AddOrUpgradeWeapon()
+			break;
+		}
+	}
+}
+
+void AAsteroidSurvivorShip::FireSpreadShot(int32 Level)
+{
+	// Spread shot fires additional projectiles in a fan pattern
+	// Level 1: 2 extra (±15°), Level 2: 4 extra (±10°, ±20°), Level 3: 6 extra (±8°, ±16°, ±24°)
+	const int32 PairsCount = Level;
+	const float SpreadBaseAngle = 15.0f;       // Starting angle at level 1
+	const float SpreadLevelDecrement = 2.5f;   // Tightens spread per level
+	const float AngleStep = SpreadBaseAngle - (Level - 1) * SpreadLevelDecrement;
+
+	for (int32 i = 1; i <= PairsCount; ++i)
+	{
+		float Angle = AngleStep * i;
+		for (float Sign : {-1.0f, 1.0f})
+		{
+			FRotator ShotRot = GetActorRotation();
+			ShotRot.Yaw += Angle * Sign;
+			FVector ShotLoc = GetActorLocation() + ShotRot.RotateVector(MuzzleOffset);
+
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = this;
+			SpawnParams.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+				ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+		}
+	}
+}
+
+void AAsteroidSurvivorShip::FireRearTurret(int32 Level)
+{
+	// Rear turret fires projectile(s) backward
+	// Level 1: 1 shot, Level 2: 2 shots (±10°), Level 3: 3 shots (0°, ±15°)
+	TArray<float> Angles;
+	if (Level >= 3)
+	{
+		Angles = {0.0f, -15.0f, 15.0f};
+	}
+	else if (Level >= 2)
+	{
+		Angles = {-10.0f, 10.0f};
+	}
+	else
+	{
+		Angles = {0.0f};
+	}
+
+	for (float Angle : Angles)
+	{
+		FRotator ShotRot = GetActorRotation();
+		ShotRot.Yaw += 180.0f + Angle; // Backward
+		FVector RearOffset(-120.0f, 0.0f, 0.0f);
+		FVector ShotLoc = GetActorLocation() + GetActorRotation().RotateVector(RearOffset);
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		SpawnParams.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+			ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+	}
+}
+
+void AAsteroidSurvivorShip::FireHomingMissile(int32 Level)
+{
+	// Homing missile: fires toward the nearest enemy within a search radius.
+	// Level determines the number of missiles (1 per level, max 3).
+	// Note: actual homing behaviour is simulated by aiming at the target's position.
+	// A true homing projectile would need a custom subclass; here we aim precisely.
+
+	const int32 MissileCount = FMath::Min(Level, 3);
+	const float SearchRadius = 2000.0f;
+
+	// Find nearest enemies
+	TArray<AActor*> NearbyEnemies;
+	for (TActorIterator<AEnemyShipBase> It(GetWorld()); It; ++It)
+	{
+		if (FVector::Dist(GetActorLocation(), (*It)->GetActorLocation()) <= SearchRadius)
+		{
+			NearbyEnemies.Add(*It);
+		}
+	}
+	// Also consider asteroids as valid targets
+	for (TActorIterator<AAsteroidSurvivorAsteroid> It(GetWorld()); It; ++It)
+	{
+		if (FVector::Dist(GetActorLocation(), (*It)->GetActorLocation()) <= SearchRadius)
+		{
+			NearbyEnemies.Add(*It);
+		}
+	}
+
+	// Sort by distance (cache ship location to avoid redundant calls)
+	const FVector ShipLoc = GetActorLocation();
+	NearbyEnemies.Sort([ShipLoc](const AActor& A, const AActor& B)
+	{
+		return FVector::DistSquared(ShipLoc, A.GetActorLocation()) <
+		       FVector::DistSquared(ShipLoc, B.GetActorLocation());
+	});
+
+	for (int32 i = 0; i < MissileCount && i < NearbyEnemies.Num(); ++i)
+	{
+		const FVector ToTarget = (NearbyEnemies[i]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+		FRotator ShotRot = ToTarget.Rotation();
+		FVector ShotLoc = GetActorLocation() + ToTarget * 100.0f;
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		SpawnParams.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+			ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+	}
+
+	// If no enemies nearby, fire forward
+	if (NearbyEnemies.Num() == 0)
+	{
+		for (int32 i = 0; i < MissileCount; ++i)
+		{
+			FVector ShotLoc = GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset);
+			FRotator ShotRot = GetActorRotation();
+
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = this;
+			SpawnParams.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+				ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+		}
+	}
 }
 
 // ────────────────────────────────────────────────────────────────────────────

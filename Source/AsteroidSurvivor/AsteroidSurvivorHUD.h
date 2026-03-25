@@ -9,7 +9,8 @@
 /**
  * HUD for Asteroid Survivor.
  * Draws score, health bar, Thorium XP bar, level indicator, upgrade
- * selection screen, and Game Over overlay via Canvas.
+ * selection screen, Game Over overlay, global timer, boss health bar,
+ * scrap counter, and weapon arsenal info via Canvas.
  */
 UCLASS()
 class ASTEROIDSURVIVOR_API AAsteroidSurvivorHUD : public AHUD
@@ -31,4 +32,7 @@ private:
 	void DrawProgressBar(float X, float Y, float Width, float Height,
 	                     float Fraction, const FLinearColor& FillColor,
 	                     const FLinearColor& BackColor);
+
+	/** Formats seconds into MM:SS display string. */
+	static FString FormatTime(float Seconds);
 };
