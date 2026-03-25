@@ -130,6 +130,7 @@ void AAsteroidSurvivorAsteroidSpawner::SpawnAsteroid(EAsteroidSize Size, float S
 	if (Asteroid)
 	{
 		Asteroid->AsteroidSize = Size;
+		Asteroid->SpeedMultiplier = SpeedMultiplier;
 		Asteroid->DriftDirection = DriftDir;
 		UGameplayStatics::FinishSpawningActor(Asteroid, SpawnTransform);
 		ActiveAsteroids.Add(Asteroid);

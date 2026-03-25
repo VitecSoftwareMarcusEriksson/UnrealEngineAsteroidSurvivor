@@ -2,6 +2,7 @@
 
 #include "AsteroidSurvivorBackground.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -17,47 +18,60 @@ AAsteroidSurvivorBackground::AAsteroidSurvivorBackground()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(
 		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 
+	auto InitISM = [&](UInstancedStaticMeshComponent* ISM)
+	{
+		ISM->SetupAttachment(Root);
+		ISM->SetAbsolute(true, true, true);
+		ISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ISM->SetCastShadow(false);
+		if (SphereMesh.Succeeded())
+		{
+			ISM->SetStaticMesh(SphereMesh.Object);
+		}
+	};
+
 	// Far stars – many tiny stars, barely scroll
 	FarStarsISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("FarStars"));
-	FarStarsISM->SetupAttachment(Root);
-	FarStarsISM->SetAbsolute(true, true, true);
-	FarStarsISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	FarStarsISM->SetCastShadow(false);
-	if (SphereMesh.Succeeded())
-	{
-		FarStarsISM->SetStaticMesh(SphereMesh.Object);
-	}
+	InitISM(FarStarsISM);
 
 	// Mid stars – medium count, moderate scroll
 	MidStarsISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("MidStars"));
-	MidStarsISM->SetupAttachment(Root);
-	MidStarsISM->SetAbsolute(true, true, true);
-	MidStarsISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	MidStarsISM->SetCastShadow(false);
-	if (SphereMesh.Succeeded())
-	{
-		MidStarsISM->SetStaticMesh(SphereMesh.Object);
-	}
+	InitISM(MidStarsISM);
 
 	// Near stars – fewer, larger stars, scroll the fastest
 	NearStarsISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("NearStars"));
-	NearStarsISM->SetupAttachment(Root);
-	NearStarsISM->SetAbsolute(true, true, true);
-	NearStarsISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	NearStarsISM->SetCastShadow(false);
-	if (SphereMesh.Succeeded())
-	{
-		NearStarsISM->SetStaticMesh(SphereMesh.Object);
-	}
+	InitISM(NearStarsISM);
+
+	// Space dust – tiny particles with subtle drift
+	SpaceDustISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("SpaceDust"));
+	InitISM(SpaceDustISM);
+
+	// Nebula – large, faint colored clouds for depth
+	NebulaISM = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("Nebula"));
+	InitISM(NebulaISM);
 }
 
 void AAsteroidSurvivorBackground::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Star layers with increasing size and decreasing count for parallax depth
 	CreateStarLayer(FarStarsISM, 300, 0.02f, 0.05f);
 	CreateStarLayer(MidStarsISM, 150, 0.04f, 0.09f);
 	CreateStarLayer(NearStarsISM, 50, 0.08f, 0.16f);
+
+	// Space dust – many tiny colored particles for atmosphere
+	CreateSpaceDustLayer(SpaceDustISM, 200);
+
+	// Nebula – large faint colored clouds for depth and vibrancy
+	CreateNebulaLayer(NebulaISM, 25);
+
+	// Color the star layers with subtle tints for visual variety
+	ApplyLayerColor(FarStarsISM, FLinearColor(1.5f, 1.5f, 2.5f, 1.0f));
+	ApplyLayerColor(MidStarsISM, FLinearColor(2.0f, 2.0f, 2.5f, 1.0f));
+	ApplyLayerColor(NearStarsISM, FLinearColor(3.0f, 2.8f, 2.5f, 1.0f));
+	ApplyLayerColor(SpaceDustISM, FLinearColor(0.4f, 0.6f, 1.2f, 1.0f));
+	ApplyLayerColor(NebulaISM, FLinearColor(0.3f, 0.15f, 0.5f, 1.0f));
 }
 
 void AAsteroidSurvivorBackground::Tick(float DeltaTime)
@@ -70,6 +84,16 @@ void AAsteroidSurvivorBackground::Tick(float DeltaTime)
 	UpdateLayerPosition(FarStarsISM, FarParallax, ShipPos, -500.0f);
 	UpdateLayerPosition(MidStarsISM, MidParallax, ShipPos, -300.0f);
 	UpdateLayerPosition(NearStarsISM, NearParallax, ShipPos, -100.0f);
+	UpdateLayerPosition(NebulaISM, NebulaParallax, ShipPos, -600.0f);
+
+	// Space dust gets a subtle animated drift on top of parallax scrolling
+	DustDriftTime += DeltaTime;
+	FVector DustAnimOffset(
+		FMath::Sin(DustDriftTime * DustDriftFrequencyX) * DustDriftSpeed,
+		FMath::Cos(DustDriftTime * DustDriftFrequencyY) * DustDriftSpeed,
+		0.0f
+	);
+	UpdateLayerPosition(SpaceDustISM, DustParallax, ShipPos + DustAnimOffset, -400.0f);
 }
 
 void AAsteroidSurvivorBackground::CreateStarLayer(UInstancedStaticMeshComponent* ISM, int32 NumStars, float MinScale, float MaxScale)
@@ -114,6 +138,135 @@ void AAsteroidSurvivorBackground::CreateStarLayer(UInstancedStaticMeshComponent*
 				ISM->AddInstance(TiledT, false);
 			}
 		}
+	}
+}
+
+void AAsteroidSurvivorBackground::CreateSpaceDustLayer(UInstancedStaticMeshComponent* ISM, int32 NumParticles)
+{
+	if (!ISM)
+	{
+		return;
+	}
+
+	const float HalfField = FieldSize * 0.5f;
+
+	TArray<FTransform> BaseDust;
+	BaseDust.Reserve(NumParticles);
+
+	for (int32 i = 0; i < NumParticles; i++)
+	{
+		FVector Pos(
+			FMath::FRandRange(-HalfField, HalfField),
+			FMath::FRandRange(-HalfField, HalfField),
+			0.0f
+		);
+
+		// Vary dust particle sizes - mostly tiny with some larger wisps
+		float Scale = FMath::FRandRange(0.01f, 0.04f);
+		if (FMath::FRand() < 0.15f)
+		{
+			Scale = FMath::FRandRange(0.04f, 0.08f);
+		}
+
+		// Elongate some particles for a wispy dust streak effect
+		FVector ScaleVec(Scale);
+		if (FMath::FRand() < 0.3f)
+		{
+			float Elongation = FMath::FRandRange(1.5f, 3.0f);
+			ScaleVec.X *= Elongation;
+		}
+
+		FTransform InstanceTransform;
+		InstanceTransform.SetLocation(Pos);
+		InstanceTransform.SetScale3D(ScaleVec);
+		// Random rotation for variety
+		InstanceTransform.SetRotation(FQuat(FRotator(
+			FMath::FRandRange(0.0f, 360.0f),
+			FMath::FRandRange(0.0f, 360.0f),
+			0.0f)));
+		BaseDust.Add(InstanceTransform);
+	}
+
+	// Tile 3x3 for seamless wrapping
+	for (int32 dx = -1; dx <= 1; dx++)
+	{
+		for (int32 dy = -1; dy <= 1; dy++)
+		{
+			FVector Offset(dx * FieldSize, dy * FieldSize, 0.0f);
+			for (const FTransform& T : BaseDust)
+			{
+				FTransform TiledT = T;
+				TiledT.SetLocation(T.GetLocation() + Offset);
+				ISM->AddInstance(TiledT, false);
+			}
+		}
+	}
+}
+
+void AAsteroidSurvivorBackground::CreateNebulaLayer(UInstancedStaticMeshComponent* ISM, int32 NumClouds)
+{
+	if (!ISM)
+	{
+		return;
+	}
+
+	const float HalfField = FieldSize * 0.5f;
+
+	TArray<FTransform> BaseClouds;
+	BaseClouds.Reserve(NumClouds);
+
+	for (int32 i = 0; i < NumClouds; i++)
+	{
+		FVector Pos(
+			FMath::FRandRange(-HalfField, HalfField),
+			FMath::FRandRange(-HalfField, HalfField),
+			0.0f
+		);
+
+		// Large, flattened spheres to simulate nebula clouds
+		float BaseScale = FMath::FRandRange(1.5f, 4.0f);
+		FVector ScaleVec(
+			BaseScale * FMath::FRandRange(0.8f, 1.5f),
+			BaseScale * FMath::FRandRange(0.8f, 1.5f),
+			BaseScale * FMath::FRandRange(0.1f, 0.3f)
+		);
+
+		FTransform InstanceTransform;
+		InstanceTransform.SetLocation(Pos);
+		InstanceTransform.SetScale3D(ScaleVec);
+		BaseClouds.Add(InstanceTransform);
+	}
+
+	// Tile 3x3 for seamless wrapping
+	for (int32 dx = -1; dx <= 1; dx++)
+	{
+		for (int32 dy = -1; dy <= 1; dy++)
+		{
+			FVector Offset(dx * FieldSize, dy * FieldSize, 0.0f);
+			for (const FTransform& T : BaseClouds)
+			{
+				FTransform TiledT = T;
+				TiledT.SetLocation(T.GetLocation() + Offset);
+				ISM->AddInstance(TiledT, false);
+			}
+		}
+	}
+}
+
+void AAsteroidSurvivorBackground::ApplyLayerColor(UInstancedStaticMeshComponent* ISM, const FLinearColor& Color)
+{
+	if (!ISM)
+	{
+		return;
+	}
+
+	UMaterialInstanceDynamic* DynMat = ISM->CreateDynamicMaterialInstance(0);
+	if (DynMat)
+	{
+		DynMat->SetVectorParameterValue(FName(TEXT("Color")), Color);
+		DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), Color);
+		DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), Color);
+		DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), Color);
 	}
 }
 
