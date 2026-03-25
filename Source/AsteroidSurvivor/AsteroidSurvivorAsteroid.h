@@ -34,6 +34,10 @@ public:
 	AAsteroidSurvivorAsteroid();
 
 	virtual void Tick(float DeltaTime) override;
+	virtual void NotifyHit(class UPrimitiveComponent* MyComp, AActor* Other,
+	                        class UPrimitiveComponent* OtherComp, bool bSelfMoved,
+	                        FVector HitLocation, FVector HitNormal,
+	                        FVector NormalImpulse, const FHitResult& Hit) override;
 
 	/** Apply damage; destroys and optionally splits the asteroid */
 	void TakeDamage_Asteroid(int32 DamageAmount);
@@ -92,8 +96,10 @@ private:
 	float Speed = 150.0f;
 	int32 ScoreValue = 20;
 	float RotationSpeed = 0.0f;
+	bool bExploding = false;
 
 	void ApplySizeParameters();
 	void Split();
+	void ExplodeIntoFragments();
 	void NotifyGameMode() const;
 };

@@ -7,6 +7,7 @@
 #include "AsteroidSurvivorGameMode.generated.h"
 
 class AAsteroidSurvivorAsteroidSpawner;
+class AAsteroidSurvivorBackground;
 
 /**
  * Game mode for Asteroid Survivor.
@@ -66,6 +67,9 @@ private:
 
 	UPROPERTY()
 	AAsteroidSurvivorAsteroidSpawner* AsteroidSpawner = nullptr;
+
+	UPROPERTY()
+	AAsteroidSurvivorBackground* Background = nullptr;
 
 	void StartWave(int32 WaveNumber);
 	void TriggerGameOver();

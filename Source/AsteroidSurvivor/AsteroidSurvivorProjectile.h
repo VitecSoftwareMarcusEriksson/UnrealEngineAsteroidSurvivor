@@ -8,6 +8,7 @@
 
 class UStaticMeshComponent;
 class USphereComponent;
+class UPointLightComponent;
 
 /**
  * Projectile fired by the player's ship.
@@ -33,6 +34,10 @@ protected:
 	/** Visual representation of the projectile */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* ProjectileMesh = nullptr;
+
+	/** Point light for projectile glow effect */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPointLightComponent* GlowLight = nullptr;
 
 	/** Speed of the projectile in cm/s */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")

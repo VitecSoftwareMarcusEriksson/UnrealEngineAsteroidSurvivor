@@ -2,6 +2,7 @@
 
 #include "AsteroidSurvivorGameMode.h"
 #include "AsteroidSurvivorAsteroidSpawner.h"
+#include "AsteroidSurvivorBackground.h"
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorPlayerController.h"
 #include "AsteroidSurvivorHUD.h"
@@ -39,6 +40,10 @@ void AAsteroidSurvivorGameMode::BeginPlay()
 		AsteroidSpawner = GetWorld()->SpawnActor<AAsteroidSurvivorAsteroidSpawner>(
 			AAsteroidSurvivorAsteroidSpawner::StaticClass());
 	}
+
+	// Spawn parallax scrolling background
+	Background = GetWorld()->SpawnActor<AAsteroidSurvivorBackground>(
+		AAsteroidSurvivorBackground::StaticClass());
 
 	StartWave(CurrentWave);
 }
