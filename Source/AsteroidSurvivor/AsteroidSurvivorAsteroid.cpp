@@ -24,7 +24,14 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	CollisionSphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 	// Respond to Pawn so the ship's overlap event can fire
 	CollisionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	CollisionSphere->SetGenerateOverlapEvents(true);
+	// Overlap events are disabled in the constructor and enabled later in
+	// InitAsteroid() *after* the correct size is applied.  This prevents a
+	// stack-overflow crash: when a boss destroys an asteroid, Explode()
+	// spawns child asteroids whose default AsteroidSize is Large.  If overlap
+	// events fire during SpawnActor (before InitAsteroid sets the real size),
+	// every child thinks it is Large, splits again, and the chain recurses
+	// infinitely until the stack overflows.
+	CollisionSphere->SetGenerateOverlapEvents(false);
 	SetRootComponent(CollisionSphere);
 
 	CollisionSphere->OnComponentBeginOverlap.AddDynamic(
@@ -113,6 +120,15 @@ void AAsteroidSurvivorAsteroid::InitAsteroid(EAsteroidSize InSize, const FVector
 	Velocity = Direction.GetSafeNormal() * InSpeed;
 	CurrentHealth = GetMaxHealthForSize();
 	ApplySizeProperties();
+
+	// Now that the correct size and collision radius are set, enable overlap
+	// events so the asteroid can interact with projectiles, other asteroids,
+	// enemy ships, and the player.  See the constructor comment for details.
+	if (CollisionSphere)
+	{
+		CollisionSphere->SetGenerateOverlapEvents(true);
+		CollisionSphere->UpdateOverlaps();
+	}
 }
 
 float AAsteroidSurvivorAsteroid::GetCollisionRadius() const

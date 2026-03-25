@@ -43,9 +43,9 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 	// ship when the projectile spawns nearby.
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(8000.0f);
+	GlowLight->SetIntensity(20000.0f);
 	GlowLight->SetLightColor(FLinearColor(0.0f, 1.0f, 0.3f));
-	GlowLight->SetAttenuationRadius(200.0f);
+	GlowLight->SetAttenuationRadius(400.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -60,7 +60,7 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 		if (DynMat)
 		{
 			// HDR green values - bloom post-processing will produce a glow effect.
-			const FLinearColor BrightGreen(0.0f, 5.0f, 1.5f, 1.0f);
+			const FLinearColor BrightGreen(0.0f, 12.0f, 3.0f, 1.0f);
 
 			// BasicShapeMaterial uses "Color"
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BrightGreen);

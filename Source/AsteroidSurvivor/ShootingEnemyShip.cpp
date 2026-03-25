@@ -15,7 +15,7 @@ AShootingEnemyShip::AShootingEnemyShip()
 	ScoreValue = 80;
 	CollisionRadius = 40.0f;
 	MeshScale = 0.75f;
-	ShipColor = FLinearColor(4.0f, 0.8f, 2.0f, 1.0f); // Magenta / pink
+	ShipColor = FLinearColor(0.5f, 2.0f, 12.0f, 1.0f); // Bright neon electric-blue
 	ScrapDropCount = 3;
 	ScrapPerPickup = 1;
 	WeaponDropChance = 0.10f; // 10% weapon drop chance
