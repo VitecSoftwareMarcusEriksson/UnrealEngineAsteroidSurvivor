@@ -233,6 +233,7 @@ void AAsteroidSurvivorAsteroid::Split()
 		if (Child)
 		{
 			Child->AsteroidSize = ChildSize;
+			Child->SpeedMultiplier = SpeedMultiplier;
 			Child->DriftDirection = ChildDir;
 			UGameplayStatics::FinishSpawningActor(Child, ChildTransform);
 		}
@@ -275,6 +276,7 @@ void AAsteroidSurvivorAsteroid::ExplodeIntoFragments()
 		if (Child)
 		{
 			Child->AsteroidSize = ChildSize;
+			Child->SpeedMultiplier = SpeedMultiplier;
 			Child->DriftDirection = FragDir;
 			UGameplayStatics::FinishSpawningActor(Child, ChildTransform);
 		}

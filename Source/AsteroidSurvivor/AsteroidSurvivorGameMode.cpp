@@ -109,8 +109,10 @@ void AAsteroidSurvivorGameMode::OnAsteroidDestroyed(int32 Points)
 {
 	Score += Points;
 
-	// Check if all asteroids are cleared – start next wave
-	if (AsteroidSpawner && AsteroidSpawner->GetActiveAsteroidCount() == 0 && !bWaitingForNextWave)
+	// Check if all asteroids are cleared – start next wave.
+	// Use <= 1 because the dying asteroid has not yet been destroyed when
+	// NotifyGameMode is called, so it is still counted by GetActiveAsteroidCount().
+	if (AsteroidSpawner && AsteroidSpawner->GetActiveAsteroidCount() <= 1 && !bWaitingForNextWave)
 	{
 		bWaitingForNextWave = true;
 		NextWaveTimer = NextWaveDelay;
