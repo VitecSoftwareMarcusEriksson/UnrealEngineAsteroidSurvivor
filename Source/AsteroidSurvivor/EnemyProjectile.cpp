@@ -44,9 +44,9 @@ AEnemyProjectile::AEnemyProjectile()
 	// Red glow light
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(6000.0f);
+	GlowLight->SetIntensity(15000.0f);
 	GlowLight->SetLightColor(FLinearColor(1.0f, 0.3f, 0.1f));
-	GlowLight->SetAttenuationRadius(180.0f);
+	GlowLight->SetAttenuationRadius(350.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -60,7 +60,7 @@ void AEnemyProjectile::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = ProjectileMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor BrightRed(5.0f, 1.0f, 0.2f, 1.0f);
+			const FLinearColor BrightRed(12.0f, 2.0f, 0.3f, 1.0f);
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BrightRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BrightRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), BrightRed);

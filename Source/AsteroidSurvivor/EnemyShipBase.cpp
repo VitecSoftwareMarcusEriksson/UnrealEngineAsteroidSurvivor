@@ -48,9 +48,9 @@ AEnemyShipBase::AEnemyShipBase()
 	// Glow light for visual flair
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(5000.0f);
+	GlowLight->SetIntensity(8000.0f);
 	GlowLight->SetLightColor(FLinearColor(1.0f, 0.2f, 0.2f));
-	GlowLight->SetAttenuationRadius(200.0f);
+	GlowLight->SetAttenuationRadius(300.0f);
 	GlowLight->SetCastShadows(false);
 }
 

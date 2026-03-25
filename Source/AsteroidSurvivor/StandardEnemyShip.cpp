@@ -13,7 +13,7 @@ AStandardEnemyShip::AStandardEnemyShip()
 	ScoreValue = 30;
 	CollisionRadius = 35.0f;
 	MeshScale = 0.6f;
-	ShipColor = FLinearColor(2.5f, 0.5f, 0.5f, 1.0f); // Dull red
+	ShipColor = FLinearColor(8.0f, 0.2f, 0.3f, 1.0f); // Bright neon red
 	ScrapDropCount = 1;
 	ScrapPerPickup = 1;
 	WeaponDropChance = 0.03f; // 3% weapon drop chance
