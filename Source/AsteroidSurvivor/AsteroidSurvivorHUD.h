@@ -8,7 +8,7 @@
 
 /**
  * HUD for Asteroid Survivor.
- * Draws score, lives, wave number and a Game Over message directly via Canvas.
+ * Draws score, lives and a Game Over message directly via Canvas.
  * For a polished UI, replace or supplement this with a UMG widget.
  */
 UCLASS()

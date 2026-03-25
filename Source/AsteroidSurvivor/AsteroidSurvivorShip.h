@@ -37,7 +37,7 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 
 	// ── Components ──────────────────────────────────────────────────────────
-	/** Collision sphere root – provides reliable overlap detection for asteroids. */
+	/** Collision sphere root – provides reliable overlap detection. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USphereComponent* CollisionSphere = nullptr;
 
@@ -121,7 +121,7 @@ private:
 
 	void StartInvulnerability();
 
-	/** Overlap handler for asteroid collision */
+	/** Overlap handler for collision */
 	UFUNCTION()
 	void OnShipOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	                        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,

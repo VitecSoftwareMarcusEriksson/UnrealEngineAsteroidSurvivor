@@ -47,7 +47,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
 	float Lifetime = 2.0f;
 
-	/** Amount of damage dealt to an asteroid on hit */
+	/** Amount of damage dealt on hit */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
 	int32 Damage = 1;
 
