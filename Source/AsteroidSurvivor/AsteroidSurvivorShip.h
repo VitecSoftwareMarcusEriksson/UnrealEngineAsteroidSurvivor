@@ -111,4 +111,7 @@ private:
 	bool bFiring = false;
 
 	void Die();
+
+	/** Creates default Enhanced Input actions and mapping context in the constructor. */
+	void SetupDefaultInputActions();
 };
