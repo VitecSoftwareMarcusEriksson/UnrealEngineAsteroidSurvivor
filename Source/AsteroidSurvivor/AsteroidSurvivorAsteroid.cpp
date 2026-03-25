@@ -59,8 +59,8 @@ void AAsteroidSurvivorAsteroid::Tick(float DeltaTime)
 	// Tumble
 	AddActorLocalRotation(FRotator(0.0f, RotationSpeed * DeltaTime, 0.0f));
 
-	// Despawn if too far from the play area
-	constexpr float DespawnDistance = 4000.0f;
+	// Despawn if too far from the play area (spawn border is at ~2200cm)
+	constexpr float DespawnDistance = 5000.0f;
 	if (GetActorLocation().SizeSquared() > DespawnDistance * DespawnDistance)
 	{
 		Destroy();
