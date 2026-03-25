@@ -32,6 +32,9 @@ public:
 protected:
 	virtual void UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* PlayerShip) override;
 
+	/** Motherships do not avoid asteroids – they plow right through them. */
+	virtual bool ShouldAvoidAsteroids() const override { return false; }
+
 	/** Turn rate for chasing the player (degrees/s). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Movement")
 	float TurnRate = 35.0f;

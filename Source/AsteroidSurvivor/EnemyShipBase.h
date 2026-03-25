@@ -10,6 +10,7 @@ class USphereComponent;
 class UStaticMeshComponent;
 class UPointLightComponent;
 class AAsteroidSurvivorShip;
+class AAsteroidSurvivorAsteroid;
 
 /**
  * Enum identifying the type of enemy ship.
@@ -69,6 +70,19 @@ protected:
 	 * @param PlayerShip The player's ship actor (may be null if dead).
 	 */
 	virtual void UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* PlayerShip);
+
+	/**
+	 * Whether this enemy type should steer away from nearby asteroids.
+	 * Returns true by default; the BossMotherShip overrides this to false.
+	 */
+	virtual bool ShouldAvoidAsteroids() const { return true; }
+
+	/**
+	 * Computes a steering vector that pushes the ship away from nearby asteroids.
+	 * Returns FVector::ZeroVector when no asteroids are within avoidance range.
+	 * Call from UpdateMovement() and blend into the desired direction.
+	 */
+	FVector ComputeAsteroidAvoidance() const;
 
 	// ── Components ──────────────────────────────────────────────────────────
 	/** Collision sphere root – overlap detection for projectiles and player. */
@@ -131,6 +145,14 @@ protected:
 	/** Distance from the player at which this enemy auto-despawns (cm). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	float DespawnDistance = 3500.0f;
+
+	/** How far ahead the ship scans for asteroids to avoid (cm). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Avoidance")
+	float AsteroidAvoidanceRadius = 400.0f;
+
+	/** Weight of the avoidance steering force relative to normal movement. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Avoidance")
+	float AsteroidAvoidanceStrength = 1.5f;
 
 	// ── Runtime state ───────────────────────────────────────────────────────
 	float CurrentHealth = 0.0f;

@@ -55,14 +55,23 @@ void AShootingEnemyShip::UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* 
 
 	// Track the player with limited turn rate
 	const FVector ToPlayer = (PlayerShip->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+	FVector DesiredDir = ToPlayer;
+
+	// Blend in asteroid avoidance steering
+	const FVector Avoidance = ComputeAsteroidAvoidance();
+	if (!Avoidance.IsNearlyZero())
+	{
+		DesiredDir = (DesiredDir + Avoidance).GetSafeNormal();
+	}
+
 	const float MaxAngleThisFrame = TurnRate * DeltaTime;
 	const float AngleBetween = FMath::RadiansToDegrees(
-		FMath::Acos(FMath::Clamp(FVector::DotProduct(MoveDirection, ToPlayer), -1.0f, 1.0f)));
+		FMath::Acos(FMath::Clamp(FVector::DotProduct(MoveDirection, DesiredDir), -1.0f, 1.0f)));
 
 	if (AngleBetween > KINDA_SMALL_NUMBER)
 	{
 		const float Alpha = FMath::Clamp(MaxAngleThisFrame / AngleBetween, 0.0f, 1.0f);
-		MoveDirection = FMath::Lerp(MoveDirection, ToPlayer, Alpha).GetSafeNormal();
+		MoveDirection = FMath::Lerp(MoveDirection, DesiredDir, Alpha).GetSafeNormal();
 	}
 
 	// Slow down when approaching the preferred engagement distance

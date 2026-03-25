@@ -4,6 +4,7 @@
 #include "AsteroidSurvivorProjectile.h"
 #include "AsteroidSurvivorGameMode.h"
 #include "AsteroidSurvivorThoriumPickup.h"
+#include "EnemyShipBase.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -343,6 +344,20 @@ void AAsteroidSurvivorAsteroid::OnAsteroidOverlapBegin(
 		{
 			Explode(/*bDropThorium=*/ false);
 		}
+		return;
+	}
+
+	// ── Enemy ship collision ──────────────────────────────────────────────
+	AEnemyShipBase* EnemyShip = Cast<AEnemyShipBase>(OtherActor);
+	if (EnemyShip)
+	{
+		// Boss motherships destroy asteroids on contact (they take no damage)
+		if (EnemyShip->GetEnemyType() == EEnemyShipType::Boss)
+		{
+			Explode(/*bDropThorium=*/ false);
+		}
+		// Non-boss enemies are destroyed by the asteroid – handled by
+		// EnemyShipBase::OnEnemyOverlapBegin; the asteroid is unaffected.
 		return;
 	}
 
