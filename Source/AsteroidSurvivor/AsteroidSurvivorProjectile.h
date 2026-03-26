@@ -31,6 +31,18 @@ public:
 	 */
 	void SetHomingMissile(bool bHoming);
 
+	/** Override the damage this projectile deals (for crits, damage boost). */
+	void SetDamage(int32 NewDamage);
+
+	/** Override the projectile's travel speed in cm/s (e.g. 0 for a stationary mine). */
+	void SetSpeed(float NewSpeed);
+
+	/** Scale the projectile mesh relative to its default size. */
+	void SetScaleMultiplier(float Mult);
+
+	/** Mark this projectile as explosive. On impact it deals splash damage within InRadius. */
+	void SetExplosiveRounds(bool bHasExplosion, float InRadius);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -71,6 +83,10 @@ private:
 	static constexpr float HomingMissileTrailInterval = 0.05f;
 	static constexpr float HomingMissileScale = 0.4f;
 	static constexpr float HomingMissileTrailOffset = -30.0f;
+
+	// Explosive rounds state
+	bool bIsExplosive = false;
+	float ExplosionRadius = 0.0f;
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

@@ -227,6 +227,11 @@ void AAsteroidSurvivorShip::Tick(float DeltaTime)
 		// Tick down homing missile cooldown independently of main fire rate
 		HomingMissileTimer -= DeltaTime;
 
+		// Tick down new weapon cooldowns
+		OrbitalDroneTimer -= DeltaTime;
+		PlasmaCannonTimer -= DeltaTime;
+		MineLauncherTimer -= DeltaTime;
+
 		// Passive healing
 		if (PassiveHealRate > 0.0f && CurrentHealth < MaxHealth && CurrentHealth > 0.0f)
 		{
@@ -375,8 +380,24 @@ void AAsteroidSurvivorShip::Fire()
 	SpawnParams.Instigator = this;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+	// Main shot
+	AAsteroidSurvivorProjectile* MainShot = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
 		ProjectileClass, MuzzleLocation, MuzzleRotation, SpawnParams);
+	ApplyProjectileUpgrades(MainShot);
+
+	// Double Shot: fire ExtraShotCount additional projectiles offset to the side
+	const float SideShotOffset = 25.0f;
+	for (int32 i = 0; i < ExtraShotCount; ++i)
+	{
+		const float Sign = (i % 2 == 0) ? 1.0f : -1.0f;
+		const float PairOffset = ((i / 2) + 1) * SideShotOffset;
+		const FVector SideOffset = GetActorRotation().RotateVector(FVector(0.0f, Sign * PairOffset, 0.0f));
+		const FVector ShotLoc = MuzzleLocation + SideOffset;
+
+		AAsteroidSurvivorProjectile* ExtraShot = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+			ProjectileClass, ShotLoc, MuzzleRotation, SpawnParams);
+		ApplyProjectileUpgrades(ExtraShot);
+	}
 
 	// Fire any extra weapons from the arsenal
 	FireExtraWeapons();
@@ -445,7 +466,9 @@ bool AAsteroidSurvivorShip::ApplyDamageToShip(float DamageAmount)
 		return false;
 	}
 
-	CurrentHealth -= DamageAmount;
+	// Armor: reduce incoming damage multiplicatively
+	const float EffectiveDamage = DamageAmount * (1.0f - DamageReduction);
+	CurrentHealth -= EffectiveDamage;
 	if (CurrentHealth <= 0.0f)
 	{
 		CurrentHealth = 0.0f;
@@ -584,6 +607,42 @@ void AAsteroidSurvivorShip::UpgradeThoriumMagnet(float Multiplier)
 	ThoriumMagnetMultiplier *= Multiplier;
 }
 
+void AAsteroidSurvivorShip::UpgradeDamageBoost()
+{
+	DamageMultiplier *= 1.20f;
+}
+
+void AAsteroidSurvivorShip::UpgradeProjectileSize()
+{
+	ProjectileSizeMultiplier *= 1.25f;
+}
+
+void AAsteroidSurvivorShip::UpgradeExplosiveRounds()
+{
+	bExplosiveRounds = true;
+}
+
+void AAsteroidSurvivorShip::UpgradeDoubleShot()
+{
+	ExtraShotCount++;
+}
+
+void AAsteroidSurvivorShip::UpgradeCriticalHit()
+{
+	CritChance = FMath::Min(CritChance + 0.15f, 1.0f);
+}
+
+void AAsteroidSurvivorShip::UpgradeScrapMagnet(float Multiplier)
+{
+	ScrapMagnetMultiplier *= Multiplier;
+}
+
+void AAsteroidSurvivorShip::UpgradeArmor()
+{
+	// Stacks multiplicatively: each pick retains 90% of remaining damage
+	DamageReduction = 1.0f - (1.0f - DamageReduction) * 0.90f;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Weapon arsenal
 // ────────────────────────────────────────────────────────────────────────────
@@ -678,6 +737,38 @@ void AAsteroidSurvivorShip::FireExtraWeapons()
 			break;
 		case EWeaponType::RapidBlaster:
 			// Handled passively via FireRateMultiplier in AddOrUpgradeWeapon()
+			break;
+		case EWeaponType::OrbitalDrones:
+			if (OrbitalDroneTimer <= 0.0f)
+			{
+				FireOrbitalDrones(WeaponEntry.Value);
+				OrbitalDroneTimer = OrbitalDroneInterval;
+			}
+			break;
+		case EWeaponType::PlasmaCannon:
+			if (PlasmaCannonTimer <= 0.0f)
+			{
+				FirePlasmaCannon(WeaponEntry.Value);
+				PlasmaCannonTimer = PlasmaCannonInterval;
+			}
+			break;
+		case EWeaponType::LightningChain:
+			FireLightningChain(WeaponEntry.Value);
+			break;
+		case EWeaponType::MineLauncher:
+			{
+				const float MineInterval = FMath::Max(4.0f - (WeaponEntry.Value - 1) * 0.5f, 1.0f);
+				if (MineLauncherTimer <= 0.0f)
+				{
+					FireMineLauncher(WeaponEntry.Value);
+					MineLauncherTimer = MineInterval;
+				}
+			}
+			break;
+		case EWeaponType::SideGuns:
+			FireSideGuns(WeaponEntry.Value);
+			break;
+		default:
 			break;
 		}
 	}
@@ -832,6 +923,167 @@ void AAsteroidSurvivorShip::FireHomingMissile(int32 Level)
 				Missile->SetHomingMissile(true);
 			}
 		}
+	}
+}
+
+void AAsteroidSurvivorShip::FireOrbitalDrones(int32 Level)
+{
+	// Spawn projectiles at evenly-spaced positions orbiting the ship,
+	// each aimed outward. Level 1 = 2 drones, each level adds 1 more.
+	const int32 DroneCount = Level + 1;
+	const float OrbitRadius = 150.0f;
+
+	for (int32 i = 0; i < DroneCount; ++i)
+	{
+		const float AngleDeg = (360.0f / DroneCount) * i;
+		const FVector OrbitOffset(
+			FMath::Cos(FMath::DegreesToRadians(AngleDeg)) * OrbitRadius,
+			FMath::Sin(FMath::DegreesToRadians(AngleDeg)) * OrbitRadius,
+			0.0f);
+
+		const FVector SpawnLoc = GetActorLocation() + OrbitOffset;
+		const FRotator SpawnRot = OrbitOffset.GetSafeNormal().Rotation();
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		SpawnParams.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AAsteroidSurvivorProjectile* Drone = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+			ProjectileClass, SpawnLoc, SpawnRot, SpawnParams);
+		ApplyProjectileUpgrades(Drone);
+	}
+}
+
+void AAsteroidSurvivorShip::FirePlasmaCannon(int32 Level)
+{
+	// Slow, large, high-damage projectile fired in the ship's forward direction.
+	// Level increases size and damage.
+	const FVector ShotLoc = GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset);
+	const FRotator ShotRot = GetActorRotation();
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = this;
+	SpawnParams.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AAsteroidSurvivorProjectile* Plasma = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+		ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+	if (Plasma)
+	{
+		Plasma->SetSpeed(500.0f);                        // Slow
+		Plasma->SetScaleMultiplier(1.5f + Level * 0.5f); // Grows per level
+		Plasma->SetDamage(50 * Level);                   // Base damage; multipliers applied below
+		ApplyProjectileUpgrades(Plasma);
+	}
+}
+
+void AAsteroidSurvivorShip::FireLightningChain(int32 Level)
+{
+	// Fires a burst of projectiles in the ship's forward direction.
+	// Level determines how many projectiles fire in the burst.
+	for (int32 i = 0; i < Level; ++i)
+	{
+		const float YOffset = (Level > 1) ? (i - (Level - 1) * 0.5f) * 18.0f : 0.0f;
+		const FVector SideVec = GetActorRotation().RotateVector(FVector(0.0f, YOffset, 0.0f));
+		const FVector ShotLoc = GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset) + SideVec;
+		const FRotator ShotRot = GetActorRotation();
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		SpawnParams.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AAsteroidSurvivorProjectile* Bolt = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+			ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+		ApplyProjectileUpgrades(Bolt);
+	}
+}
+
+void AAsteroidSurvivorShip::FireMineLauncher(int32 Level)
+{
+	// Spawns a stationary mine at the ship's rear position.
+	// The mine has zero speed so it stays in place until its lifetime expires.
+	const FVector RearOffset = GetActorRotation().RotateVector(FVector(-120.0f, 0.0f, 0.0f));
+	const FVector SpawnLoc = GetActorLocation() + RearOffset;
+	const FRotator SpawnRot = GetActorRotation();
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = this;
+	SpawnParams.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AAsteroidSurvivorProjectile* Mine = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+		ProjectileClass, SpawnLoc, SpawnRot, SpawnParams);
+	if (Mine)
+	{
+		Mine->SetSpeed(0.0f);    // Stationary
+		Mine->SetScaleMultiplier(1.5f);
+		Mine->SetDamage(40);     // Base damage; multipliers applied below
+		ApplyProjectileUpgrades(Mine);
+	}
+}
+
+void AAsteroidSurvivorShip::FireSideGuns(int32 Level)
+{
+	// Fires one pair of perpendicular projectiles per level (left and right).
+	for (int32 i = 0; i < Level; ++i)
+	{
+		const float ForwardShift = i * 20.0f; // stagger pairs slightly forward
+
+		for (float Sign : {-1.0f, 1.0f})
+		{
+			FRotator ShotRot = GetActorRotation();
+			ShotRot.Yaw += 90.0f * Sign;
+
+			const FVector SideOffset =
+				GetActorRotation().RotateVector(FVector(0.0f, Sign * 60.0f, 0.0f));
+			const FVector FwdShift =
+				GetActorRotation().RotateVector(FVector(ForwardShift, 0.0f, 0.0f));
+			const FVector ShotLoc = GetActorLocation() + SideOffset + FwdShift;
+
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = this;
+			SpawnParams.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			AAsteroidSurvivorProjectile* Shot = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+				ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+			ApplyProjectileUpgrades(Shot);
+		}
+	}
+}
+
+void AAsteroidSurvivorShip::ApplyProjectileUpgrades(AAsteroidSurvivorProjectile* Projectile) const
+{
+	if (!Projectile)
+	{
+		return;
+	}
+
+	// Apply damage multiplier and critical hit chance
+	float FinalDamage = static_cast<float>(Projectile->GetDamage()) * DamageMultiplier;
+	if (CritChance > 0.0f && FMath::FRand() < CritChance)
+	{
+		FinalDamage *= CritMultiplier;
+	}
+	Projectile->SetDamage(FMath::RoundToInt(FinalDamage));
+
+	// Apply projectile size multiplier
+	if (ProjectileSizeMultiplier != 1.0f)
+	{
+		Projectile->SetScaleMultiplier(ProjectileSizeMultiplier);
+	}
+
+	// Apply explosive rounds
+	if (bExplosiveRounds)
+	{
+		Projectile->SetExplosiveRounds(true, ExplosionRadius);
 	}
 }
 

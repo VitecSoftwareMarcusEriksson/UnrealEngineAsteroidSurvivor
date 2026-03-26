@@ -23,7 +23,14 @@ enum class EUpgradeType : uint8
 	PassiveHealing,   // +2 HP/s regeneration (stacks)
 	Shield,           // Energy shield – absorbs one hit, recharges
 	FireRate,         // +25% fire rate
-	ThoriumMagnet     // +50% Thorium pull radius
+	ThoriumMagnet,    // +50% Thorium pull radius
+	DamageBoost,      // +20% projectile damage (multiplicative, stacks)
+	ProjectileSize,   // +25% projectile scale (stacks)
+	ExplosiveRounds,  // Projectiles deal AoE splash damage on hit
+	DoubleShot,       // Fire one additional projectile side by side (stacks)
+	CriticalHit,      // 15% chance to deal 2× damage
+	ScrapMagnet,      // +50% scrap/pickup pull radius
+	Armor             // Reduce incoming damage by 10% (stacks multiplicatively)
 };
 
 /** Describes a single upgrade option presented during level-up. */

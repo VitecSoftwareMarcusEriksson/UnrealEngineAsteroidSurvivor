@@ -15,6 +15,7 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 class AAsteroidSurvivorTrailParticle;
+class AAsteroidSurvivorProjectile;
 
 /**
  * The player-controlled spaceship in Asteroid Survivor.
@@ -48,6 +49,14 @@ public:
 
 	// ── Upgrade multipliers (read by other systems) ─────────────────────────
 	float GetThoriumMagnetMultiplier() const { return ThoriumMagnetMultiplier; }
+	float GetScrapMagnetMultiplier() const { return ScrapMagnetMultiplier; }
+	float GetDamageMultiplier() const { return DamageMultiplier; }
+	float GetProjectileSizeMultiplier() const { return ProjectileSizeMultiplier; }
+	bool HasExplosiveRounds() const { return bExplosiveRounds; }
+	float GetExplosionRadius() const { return ExplosionRadius; }
+	int32 GetExtraShotCount() const { return ExtraShotCount; }
+	float GetCritChance() const { return CritChance; }
+	float GetCritMultiplier() const { return CritMultiplier; }
 
 	/** Apply an upgrade that increases max health and fully heals. */
 	void UpgradeMaxHealth(float BonusHealth);
@@ -69,6 +78,27 @@ public:
 
 	/** Apply an upgrade that increases Thorium pull radius. */
 	void UpgradeThoriumMagnet(float Multiplier);
+
+	/** Apply an upgrade that increases projectile damage. */
+	void UpgradeDamageBoost();
+
+	/** Apply an upgrade that increases projectile size. */
+	void UpgradeProjectileSize();
+
+	/** Apply an upgrade that makes projectiles explode on hit. */
+	void UpgradeExplosiveRounds();
+
+	/** Apply an upgrade that fires an extra side-by-side projectile. */
+	void UpgradeDoubleShot();
+
+	/** Apply an upgrade that grants a critical hit chance. */
+	void UpgradeCriticalHit();
+
+	/** Apply an upgrade that increases scrap/pickup pull radius. */
+	void UpgradeScrapMagnet(float Multiplier);
+
+	/** Apply an upgrade that reduces incoming damage. */
+	void UpgradeArmor();
 
 	// ── Weapon arsenal system ───────────────────────────────────────────────
 	/** Add a new weapon or upgrade an existing one. Called when a weapon pickup is collected. */
@@ -187,6 +217,17 @@ private:
 	float PassiveHealRate = 0.0f;      // HP restored per second
 	float ThoriumMagnetMultiplier = 1.0f;
 
+	// New upgrade stats
+	float DamageMultiplier = 1.0f;
+	float ProjectileSizeMultiplier = 1.0f;
+	bool bExplosiveRounds = false;
+	float ExplosionRadius = 150.0f;
+	int32 ExtraShotCount = 0;
+	float CritChance = 0.0f;
+	float CritMultiplier = 2.0f;
+	float ScrapMagnetMultiplier = 1.0f;
+	float DamageReduction = 0.0f;
+
 	// Shield
 	bool bHasShieldUpgrade = false;
 	bool bShieldActive = false;
@@ -209,6 +250,15 @@ private:
 	// Homing missile cooldown (independent of the main fire rate)
 	float HomingMissileTimer = 0.0f;
 	float HomingMissileInterval = 1.0f;
+
+	// Cooldowns for new weapons with independent fire rates
+	float OrbitalDroneTimer = 0.0f;
+	static constexpr float OrbitalDroneInterval = 0.5f;
+
+	float PlasmaCannonTimer = 0.0f;
+	static constexpr float PlasmaCannonInterval = 2.0f;
+
+	float MineLauncherTimer = 0.0f;
 
 	// Engine trail
 	float TrailSpawnTimer = 0.0f;
@@ -258,4 +308,22 @@ private:
 
 	/** Fires a homing missile toward the nearest enemy. */
 	void FireHomingMissile(int32 Level);
+
+	/** Fires drone projectiles at positions orbiting the ship. */
+	void FireOrbitalDrones(int32 Level);
+
+	/** Fires a slow, large, high-damage plasma projectile. */
+	void FirePlasmaCannon(int32 Level);
+
+	/** Fires a burst of chain projectiles in the forward direction. */
+	void FireLightningChain(int32 Level);
+
+	/** Drops a stationary mine at the ship's rear. */
+	void FireMineLauncher(int32 Level);
+
+	/** Fires projectiles perpendicular to the ship (left and right). */
+	void FireSideGuns(int32 Level);
+
+	/** Applies damage multiplier, crit, and size upgrades to a freshly spawned projectile. */
+	void ApplyProjectileUpgrades(AAsteroidSurvivorProjectile* Projectile) const;
 };
