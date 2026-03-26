@@ -64,7 +64,7 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 		{
 			// Bright neon green for player projectiles – clearly distinct from red enemy shots.
 			const FLinearColor BaseGreen(0.2f, 1.0f, 0.1f, 1.0f);
-			const FLinearColor EmissiveGreen = BaseGreen * 2.0f;
+			const FLinearColor EmissiveGreen = BaseGreen * 3.0f;
 
 			// BasicShapeMaterial uses "Color"
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseGreen);
@@ -73,8 +73,6 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 			// Emissive parameters (various naming conventions)
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveGreen);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveGreen);
-			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 }
@@ -102,13 +100,11 @@ void AAsteroidSurvivorProjectile::SetHomingMissile(bool bHoming)
 		if (DynMat)
 		{
 			const FLinearColor MissileBase(1.0f, 0.5f, 0.1f, 1.0f);
-			const FLinearColor MissileEmissive = MissileBase * 2.0f;
+			const FLinearColor MissileEmissive = MissileBase * 3.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), MissileBase);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), MissileBase);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), MissileEmissive);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), MissileEmissive);
-			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 

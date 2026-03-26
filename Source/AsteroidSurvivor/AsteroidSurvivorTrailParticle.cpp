@@ -41,13 +41,11 @@ void AAsteroidSurvivorTrailParticle::BeginPlay()
 		{
 			// Bright orange/fire color for engine trail
 			const FLinearColor TrailBaseColor(1.0f, 0.4f, 0.05f, 1.0f);
-			const FLinearColor TrailEmissive = TrailBaseColor * 2.0f;
+			const FLinearColor TrailEmissive = TrailBaseColor * 3.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), TrailBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), TrailBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), TrailEmissive);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), TrailEmissive);
-			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 }
@@ -92,13 +90,11 @@ void AAsteroidSurvivorTrailParticle::SetSmokeColor(const FLinearColor& BaseColor
 		}
 		if (DynMat)
 		{
-			const FLinearColor SmokeEmissive = BaseColor * 2.0f;
+			const FLinearColor SmokeEmissive = BaseColor * 3.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), SmokeEmissive);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), SmokeEmissive);
-			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 

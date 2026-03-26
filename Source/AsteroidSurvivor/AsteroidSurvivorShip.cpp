@@ -127,8 +127,6 @@ void AAsteroidSurvivorShip::BeginPlay()
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipEmissive);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShipEmissive);
-			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 
@@ -144,8 +142,6 @@ void AAsteroidSurvivorShip::BeginPlay()
 			ShieldMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShieldBaseColor);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShieldEmissive);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShieldEmissive);
-			ShieldMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			ShieldMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 
