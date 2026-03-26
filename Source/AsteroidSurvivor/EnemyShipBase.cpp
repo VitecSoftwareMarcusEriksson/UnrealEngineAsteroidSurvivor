@@ -11,6 +11,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -44,6 +45,14 @@ AEnemyShipBase::AEnemyShipBase()
 		ShipMesh->SetStaticMesh(CubeMeshAsset.Object);
 	}
 	ShipMesh->SetRelativeScale3D(FVector(MeshScale));
+
+	// Override with M_SolidColor for reliable per-instance colour
+	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	if (SolidColorMat.Succeeded())
+	{
+		ShipMesh->SetMaterial(0, SolidColorMat.Object);
+	}
 
 	// Glow light for visual flair
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));

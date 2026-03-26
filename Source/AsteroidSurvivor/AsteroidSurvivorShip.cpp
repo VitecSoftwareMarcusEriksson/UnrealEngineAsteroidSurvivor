@@ -13,6 +13,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -59,6 +60,14 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	// affect the actor's forward vector because CollisionSphere is the root.
 	ShipMesh->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	ShipMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.7f));
+
+	// Override with M_SolidColor for reliable per-instance colour
+	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	if (SolidColorMat.Succeeded())
+	{
+		ShipMesh->SetMaterial(0, SolidColorMat.Object);
+	}
 
 	// Shield visual mesh (translucent sphere around the ship)
 	ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShieldMesh"));
