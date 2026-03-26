@@ -127,6 +127,8 @@ void AAsteroidSurvivorShip::BeginPlay()
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipEmissive);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShipEmissive);
+			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
+			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 
@@ -142,6 +144,8 @@ void AAsteroidSurvivorShip::BeginPlay()
 			ShieldMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShieldBaseColor);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShieldEmissive);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShieldEmissive);
+			ShieldMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
+			ShieldMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 
@@ -223,6 +227,9 @@ void AAsteroidSurvivorShip::Tick(float DeltaTime)
 				FireTimer = EffectiveFireRate;
 			}
 		}
+
+		// Tick down homing missile cooldown independently of main fire rate
+		HomingMissileTimer -= DeltaTime;
 
 		// Passive healing
 		if (PassiveHealRate > 0.0f && CurrentHealth < MaxHealth && CurrentHealth > 0.0f)
@@ -667,7 +674,11 @@ void AAsteroidSurvivorShip::FireExtraWeapons()
 			FireRearTurret(WeaponEntry.Value);
 			break;
 		case EWeaponType::HomingMissile:
-			FireHomingMissile(WeaponEntry.Value);
+			if (HomingMissileTimer <= 0.0f)
+			{
+				FireHomingMissile(WeaponEntry.Value);
+				HomingMissileTimer = HomingMissileInterval;
+			}
 			break;
 		case EWeaponType::RapidBlaster:
 			// Handled passively via FireRateMultiplier in AddOrUpgradeWeapon()
@@ -796,8 +807,12 @@ void AAsteroidSurvivorShip::FireHomingMissile(int32 Level)
 		SpawnParams.SpawnCollisionHandlingOverride =
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-		GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+		AAsteroidSurvivorProjectile* Missile = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
 			ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+		if (Missile)
+		{
+			Missile->SetHomingMissile(true);
+		}
 	}
 
 	// If no enemies nearby, fire forward
@@ -814,8 +829,12 @@ void AAsteroidSurvivorShip::FireHomingMissile(int32 Level)
 			SpawnParams.SpawnCollisionHandlingOverride =
 				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-			GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
+			AAsteroidSurvivorProjectile* Missile = GetWorld()->SpawnActor<AAsteroidSurvivorProjectile>(
 				ProjectileClass, ShotLoc, ShotRot, SpawnParams);
+			if (Missile)
+			{
+				Missile->SetHomingMissile(true);
+			}
 		}
 	}
 }
