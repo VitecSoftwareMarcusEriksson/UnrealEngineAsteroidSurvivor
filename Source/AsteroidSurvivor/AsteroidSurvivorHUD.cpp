@@ -140,14 +140,40 @@ void AAsteroidSurvivorHUD::DrawHUD()
 		GM->GetCurrentThorium(), GM->GetThoriumForNextLevel());
 	DrawText(XPText, FColor::White, BarX + 35.0f, 114.0f, HUDFont, 0.8f);
 
-	// ── Scrap counter ───────────────────────────────────────────────────────
-	FString ScrapText = FString::Printf(TEXT("SCRAP: %d"), GM->GetCurrentScrap());
-	DrawText(ScrapText, FColor(255, 200, 50), BarX, 142.0f, HUDFont, 1.2f);
+	// ── Scrap meter bar ────────────────────────────────────────────────────
+	DrawText(TEXT("SCRAP"), FColor(255, 200, 50), BarX, 142.0f, HUDFont, 1.0f);
+
+	float ScrapFraction = 0.0f;
+	if (GM->GetScrapForNextWeaponLevel() > 0)
+	{
+		ScrapFraction = static_cast<float>(GM->GetCurrentScrap()) /
+		                static_cast<float>(GM->GetScrapForNextWeaponLevel());
+	}
+	ScrapFraction = FMath::Clamp(ScrapFraction, 0.0f, 1.0f);
+
+	DrawProgressBar(BarX + 58.0f, 144.0f, BarWidth - 28.0f, BarHeight, ScrapFraction,
+	                FLinearColor(1.0f, 0.75f, 0.1f), FLinearColor(0.2f, 0.15f, 0.05f, 0.8f));
+
+	FString ScrapText = FString::Printf(TEXT("%d / %d"),
+		GM->GetCurrentScrap(), GM->GetScrapForNextWeaponLevel());
+	DrawText(ScrapText, FColor::White, BarX + 63.0f, 142.0f, HUDFont, 0.8f);
 
 	// ── Weapon arsenal (bottom-left) ────────────────────────────────────────
 	if (Ship)
 	{
-		float WeaponY = H - 120.0f;
+		float WeaponY = H - 140.0f;
+
+		// Firing toggle indicator
+		if (Ship->IsFiring())
+		{
+			DrawText(TEXT("[FIRING]"), FColor::Green, 20.0f, WeaponY, HUDFont, 0.9f);
+		}
+		else
+		{
+			DrawText(TEXT("[HOLD FIRE]"), FColor(150, 150, 150), 20.0f, WeaponY, HUDFont, 0.9f);
+		}
+		WeaponY += 20.0f;
+
 		FString BlasterText = FString::Printf(TEXT("Blaster Lv.%d"), Ship->GetBlasterLevel());
 		DrawText(BlasterText, FColor(100, 255, 100), 20.0f, WeaponY, HUDFont, 0.9f);
 		WeaponY += 20.0f;
@@ -194,43 +220,86 @@ void AAsteroidSurvivorHUD::DrawHUD()
 		// Semi-transparent backdrop
 		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.6f), 0.0f, 0.0f, W, H);
 
-		// Title
-		FString Title = TEXT("LEVEL UP! Choose an Upgrade:");
-		float TW, TH;
-		GetTextSize(Title, TW, TH, HUDFont, 2.0f);
-		DrawText(Title, FColor::Yellow, (W - TW) * 0.5f, H * 0.25f, HUDFont, 2.0f);
-
-		const TArray<FUpgradeOption>& Options = GM->GetCurrentUpgradeOptions();
-		const float OptionStartY = H * 0.38f;
-		const float OptionSpacing = 70.0f;
-
-		for (int32 i = 0; i < Options.Num(); ++i)
+		if (GM->IsSelectingStatUpgrade())
 		{
-			const FUpgradeOption& Opt = Options[i];
+			// Stat upgrade selection (Thorium level-up)
+			FString Title = TEXT("LEVEL UP! Choose an Upgrade:");
+			float TW, TH;
+			GetTextSize(Title, TW, TH, HUDFont, 2.0f);
+			DrawText(Title, FColor::Yellow, (W - TW) * 0.5f, H * 0.25f, HUDFont, 2.0f);
 
-			// Option number + name
-			FString OptText = FString::Printf(TEXT("[%d]  %s"), i + 1, *Opt.Name);
-			float OW, OH;
-			GetTextSize(OptText, OW, OH, HUDFont, 1.8f);
-			DrawText(OptText, FColor::White,
-			         (W - OW) * 0.5f, OptionStartY + i * OptionSpacing,
-			         HUDFont, 1.8f);
+			const TArray<FUpgradeOption>& Options = GM->GetCurrentUpgradeOptions();
+			const float OptionStartY = H * 0.38f;
+			const float OptionSpacing = 70.0f;
 
-			// Description
-			float DW, DH;
-			GetTextSize(Opt.Description, DW, DH, HUDFont, 1.2f);
-			DrawText(Opt.Description, FColor(180, 180, 180),
-			         (W - DW) * 0.5f, OptionStartY + i * OptionSpacing + OH + 4.0f,
+			for (int32 i = 0; i < Options.Num(); ++i)
+			{
+				const FUpgradeOption& Opt = Options[i];
+
+				// Option number + name
+				FString OptText = FString::Printf(TEXT("[%d]  %s"), i + 1, *Opt.Name);
+				float OW, OH;
+				GetTextSize(OptText, OW, OH, HUDFont, 1.8f);
+				DrawText(OptText, FColor::White,
+				         (W - OW) * 0.5f, OptionStartY + i * OptionSpacing,
+				         HUDFont, 1.8f);
+
+				// Description
+				float DW, DH;
+				GetTextSize(Opt.Description, DW, DH, HUDFont, 1.2f);
+				DrawText(Opt.Description, FColor(180, 180, 180),
+				         (W - DW) * 0.5f, OptionStartY + i * OptionSpacing + OH + 4.0f,
+				         HUDFont, 1.2f);
+			}
+
+			// Instruction
+			FString Hint = TEXT("Press 1, 2 or 3 to select");
+			float HW, HH;
+			GetTextSize(Hint, HW, HH, HUDFont, 1.2f);
+			DrawText(Hint, FColor(255, 255, 100),
+			         (W - HW) * 0.5f, OptionStartY + Options.Num() * OptionSpacing + 30.0f,
 			         HUDFont, 1.2f);
 		}
+		else if (GM->IsSelectingWeaponUpgrade())
+		{
+			// Weapon upgrade selection (scrap meter filled)
+			FString Title = TEXT("WEAPON UPGRADE! Choose a Weapon:");
+			float TW, TH;
+			GetTextSize(Title, TW, TH, HUDFont, 2.0f);
+			DrawText(Title, FColor(255, 200, 50), (W - TW) * 0.5f, H * 0.25f, HUDFont, 2.0f);
 
-		// Instruction
-		FString Hint = TEXT("Press 1, 2 or 3 to select");
-		float HW, HH;
-		GetTextSize(Hint, HW, HH, HUDFont, 1.2f);
-		DrawText(Hint, FColor(255, 255, 100),
-		         (W - HW) * 0.5f, OptionStartY + Options.Num() * OptionSpacing + 30.0f,
-		         HUDFont, 1.2f);
+			const TArray<FWeaponUpgradeOption>& Options = GM->GetCurrentWeaponUpgradeOptions();
+			const float OptionStartY = H * 0.38f;
+			const float OptionSpacing = 70.0f;
+
+			for (int32 i = 0; i < Options.Num(); ++i)
+			{
+				const FWeaponUpgradeOption& Opt = Options[i];
+
+				// Option number + name
+				FString OptText = FString::Printf(TEXT("[%d]  %s"), i + 1, *Opt.Name);
+				float OW, OH;
+				GetTextSize(OptText, OW, OH, HUDFont, 1.8f);
+				DrawText(OptText, FColor::White,
+				         (W - OW) * 0.5f, OptionStartY + i * OptionSpacing,
+				         HUDFont, 1.8f);
+
+				// Description
+				float DW, DH;
+				GetTextSize(Opt.Description, DW, DH, HUDFont, 1.2f);
+				DrawText(Opt.Description, FColor(180, 180, 180),
+				         (W - DW) * 0.5f, OptionStartY + i * OptionSpacing + OH + 4.0f,
+				         HUDFont, 1.2f);
+			}
+
+			// Instruction
+			FString Hint = TEXT("Press 1, 2 or 3 to select");
+			float HW, HH;
+			GetTextSize(Hint, HW, HH, HUDFont, 1.2f);
+			DrawText(Hint, FColor(255, 255, 100),
+			         (W - HW) * 0.5f, OptionStartY + Options.Num() * OptionSpacing + 30.0f,
+			         HUDFont, 1.2f);
+		}
 	}
 
 	// ── Game Over overlay ────────────────────────────────────────────────────

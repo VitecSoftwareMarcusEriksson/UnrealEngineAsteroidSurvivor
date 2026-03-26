@@ -2,6 +2,7 @@
 
 #include "WeaponUpgradePickup.h"
 #include "AsteroidSurvivorShip.h"
+#include "AsteroidSurvivorGameMode.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -78,17 +79,26 @@ FString AWeaponUpgradePickup::GetWeaponDisplayName(EWeaponType Type)
 {
 	switch (Type)
 	{
-	case EWeaponType::SpreadShot:     return TEXT("Spread Shot");
-	case EWeaponType::RapidBlaster:   return TEXT("Rapid Blaster");
-	case EWeaponType::RearTurret:     return TEXT("Rear Turret");
-	case EWeaponType::HomingMissile:  return TEXT("Homing Missile");
-	default:                          return TEXT("Unknown Weapon");
+	case EWeaponType::SpreadShot:      return TEXT("Spread Shot");
+	case EWeaponType::RapidBlaster:    return TEXT("Rapid Blaster");
+	case EWeaponType::RearTurret:      return TEXT("Rear Turret");
+	case EWeaponType::HomingMissile:   return TEXT("Homing Missile");
+	case EWeaponType::BlasterUpgrade:  return TEXT("Blaster Upgrade");
+	default:                           return TEXT("Unknown Weapon");
 	}
 }
 
 void AWeaponUpgradePickup::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// Freeze movement during upgrade selection
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
 
 	// Lifetime countdown
 	LifeTimer += DeltaTime;

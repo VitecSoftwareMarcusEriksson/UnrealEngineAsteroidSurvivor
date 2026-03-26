@@ -88,6 +88,14 @@ void AAsteroidSurvivorAsteroid::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Freeze movement during upgrade selection
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
+
 	// Move at constant velocity (speed is fixed for the asteroid's lifetime)
 	FVector NewLocation = GetActorLocation() + Velocity * DeltaTime;
 	SetActorLocation(NewLocation, true);

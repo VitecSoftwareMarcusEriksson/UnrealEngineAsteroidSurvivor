@@ -3,6 +3,7 @@
 #include "ShootingEnemyShip.h"
 #include "EnemyProjectile.h"
 #include "AsteroidSurvivorShip.h"
+#include "AsteroidSurvivorGameMode.h"
 #include "Kismet/GameplayStatics.h"
 
 AShootingEnemyShip::AShootingEnemyShip()
@@ -15,9 +16,9 @@ AShootingEnemyShip::AShootingEnemyShip()
 	ScoreValue = 80;
 	CollisionRadius = 40.0f;
 	MeshScale = 0.75f;
-	ShipColor = FLinearColor(0.5f, 2.0f, 12.0f, 1.0f); // Bright neon electric-blue
+	ShipColor = FLinearColor(0.5f, 3.0f, 16.0f, 1.0f); // Bright neon electric-blue
 	ScrapDropCount = 3;
-	ScrapPerPickup = 1;
+	ScrapPerPickup = 2;   // Larger enemy, more scrap per drop
 	WeaponDropChance = 0.10f; // 10% weapon drop chance
 
 	// Randomise first shot delay so multiple shooters don't fire in sync
@@ -27,6 +28,14 @@ AShootingEnemyShip::AShootingEnemyShip()
 void AShootingEnemyShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// Freeze firing during upgrade selection (movement is already frozen in base class)
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
 
 	// Firing logic (runs after UpdateMovement via Super::Tick)
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);

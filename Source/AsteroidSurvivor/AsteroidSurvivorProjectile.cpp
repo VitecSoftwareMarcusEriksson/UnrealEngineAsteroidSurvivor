@@ -1,11 +1,13 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AsteroidSurvivorProjectile.h"
+#include "AsteroidSurvivorGameMode.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Kismet/GameplayStatics.h"
 
 AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 {
@@ -44,7 +46,7 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
 	GlowLight->SetIntensity(20000.0f);
-	GlowLight->SetLightColor(FLinearColor(0.0f, 1.0f, 0.3f));
+	GlowLight->SetLightColor(FLinearColor(0.2f, 1.0f, 0.1f));
 	GlowLight->SetAttenuationRadius(400.0f);
 	GlowLight->SetCastShadows(false);
 }
@@ -59,8 +61,8 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = ProjectileMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			// HDR green values - bloom post-processing will produce a glow effect.
-			const FLinearColor BrightGreen(0.0f, 12.0f, 3.0f, 1.0f);
+			// Bright neon green for player projectiles – clearly distinct from red enemy shots.
+			const FLinearColor BrightGreen(0.5f, 16.0f, 2.0f, 1.0f);
 
 			// BasicShapeMaterial uses "Color"
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BrightGreen);
@@ -76,6 +78,14 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 void AAsteroidSurvivorProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// Freeze movement during upgrade selection
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
 
 	// Move forward
 	FVector Delta = GetActorForwardVector() * Speed * DeltaTime;

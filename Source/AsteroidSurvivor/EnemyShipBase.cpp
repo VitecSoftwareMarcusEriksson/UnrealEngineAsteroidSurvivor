@@ -99,6 +99,14 @@ void AEnemyShipBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Freeze movement during upgrade selection
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
+
 	// Find the player ship for AI behaviour
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(PlayerPawn);

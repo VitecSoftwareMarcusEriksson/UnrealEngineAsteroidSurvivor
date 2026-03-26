@@ -13,9 +13,9 @@ AZigzagEnemyShip::AZigzagEnemyShip()
 	ScoreValue = 50;
 	CollisionRadius = 35.0f;
 	MeshScale = 0.65f;
-	ShipColor = FLinearColor(2.0f, 10.0f, 0.4f, 1.0f); // Bright neon lime-green
+	ShipColor = FLinearColor(2.0f, 14.0f, 0.5f, 1.0f); // Bright neon lime-green
 	ScrapDropCount = 2;
-	ScrapPerPickup = 1;
+	ScrapPerPickup = 2;   // Medium enemy, more scrap per drop
 	WeaponDropChance = 0.05f; // 5% weapon drop chance
 
 	// Randomise the starting phase so multiple zigzag ships don't move in sync

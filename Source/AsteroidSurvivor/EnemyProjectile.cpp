@@ -2,12 +2,14 @@
 
 #include "EnemyProjectile.h"
 #include "AsteroidSurvivorShip.h"
+#include "AsteroidSurvivorGameMode.h"
 #include "EnemyShipBase.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Kismet/GameplayStatics.h"
 
 AEnemyProjectile::AEnemyProjectile()
 {
@@ -60,7 +62,8 @@ void AEnemyProjectile::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = ProjectileMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor BrightRed(12.0f, 2.0f, 0.3f, 1.0f);
+			// Bright neon red-orange for enemy projectiles – clearly distinct from green player shots.
+			const FLinearColor BrightRed(16.0f, 3.0f, 0.5f, 1.0f);
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BrightRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BrightRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), BrightRed);
@@ -72,6 +75,14 @@ void AEnemyProjectile::BeginPlay()
 void AEnemyProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// Freeze movement during upgrade selection
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
 
 	// Move forward along the firing direction
 	FVector Delta = GetActorForwardVector() * Speed * DeltaTime;

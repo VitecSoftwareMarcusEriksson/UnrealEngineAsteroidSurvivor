@@ -78,6 +78,14 @@ void AScrapPickup::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Freeze movement during upgrade selection
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
+
 	// Lifetime countdown
 	LifeTimer += DeltaTime;
 	if (LifeTimer >= Lifetime)

@@ -7,6 +7,7 @@
 #include "AsteroidSurvivorPlayerController.h"
 #include "AsteroidSurvivorHUD.h"
 #include "WaveManager.h"
+#include "WeaponUpgradePickup.h"
 #include "Engine/DirectionalLight.h"
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
@@ -45,11 +46,11 @@ void AAsteroidSurvivorGameMode::Tick(float DeltaSeconds)
 	// Pause/resume the wave manager based on game state
 	if (WaveManagerActor)
 	{
-		WaveManagerActor->SetSpawningPaused(bGameOver || bSelectingUpgrade);
+		WaveManagerActor->SetSpawningPaused(bGameOver || bSelectingUpgrade || bSelectingWeaponUpgrade);
 	}
 
-	// Asteroid spawning (paused during upgrade selection)
-	if (!bGameOver && !bSelectingUpgrade)
+	// Asteroid spawning (paused during any upgrade selection)
+	if (!bGameOver && !bSelectingUpgrade && !bSelectingWeaponUpgrade)
 	{
 		AsteroidSpawnTimer -= DeltaSeconds;
 		if (AsteroidSpawnTimer <= 0.0f)
@@ -76,7 +77,7 @@ void AAsteroidSurvivorGameMode::AddScore(int32 Points)
 
 void AAsteroidSurvivorGameMode::AddThorium(int32 Amount)
 {
-	if (bGameOver || bSelectingUpgrade)
+	if (bGameOver || bSelectingUpgrade || bSelectingWeaponUpgrade)
 	{
 		return;
 	}
@@ -95,20 +96,21 @@ void AAsteroidSurvivorGameMode::AddThorium(int32 Amount)
 
 void AAsteroidSurvivorGameMode::AddScrap(int32 Amount)
 {
-	if (bGameOver)
+	if (bGameOver || bSelectingUpgrade || bSelectingWeaponUpgrade)
 	{
 		return;
 	}
 
 	CurrentScrap += Amount;
 
-	// Scrap auto-upgrades: every 25 scrap collected enhances the base blaster
-	// by adding extra projectiles in a fan pattern.
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(PlayerPawn);
-	if (Ship)
+	// Check for weapon upgrade threshold
+	if (CurrentScrap >= ScrapForNextWeaponLevel)
 	{
-		Ship->OnScrapCollected(CurrentScrap);
+		CurrentScrap -= ScrapForNextWeaponLevel;
+		CurrentWeaponLevel++;
+		// Scale the next threshold: +10 per level
+		ScrapForNextWeaponLevel = 25 + CurrentWeaponLevel * 10;
+		PresentWeaponUpgradeOptions();
 	}
 }
 
@@ -142,6 +144,18 @@ void AAsteroidSurvivorGameMode::SelectUpgrade(int32 Index)
 	ApplyUpgrade(CurrentUpgradeOptions[Index]);
 	CurrentUpgradeOptions.Empty();
 	bSelectingUpgrade = false;
+}
+
+void AAsteroidSurvivorGameMode::SelectWeaponUpgrade(int32 Index)
+{
+	if (!bSelectingWeaponUpgrade || !CurrentWeaponUpgradeOptions.IsValidIndex(Index))
+	{
+		return;
+	}
+
+	ApplyWeaponUpgrade(CurrentWeaponUpgradeOptions[Index]);
+	CurrentWeaponUpgradeOptions.Empty();
+	bSelectingWeaponUpgrade = false;
 }
 
 void AAsteroidSurvivorGameMode::ApplyUpgrade(const FUpgradeOption& Upgrade)
@@ -230,6 +244,85 @@ TArray<FUpgradeOption> AAsteroidSurvivorGameMode::BuildUpgradePool()
 		Opt.Type = EUpgradeType::ThoriumMagnet;
 		Opt.Name = TEXT("Thorium Magnet");
 		Opt.Description = TEXT("+50% Thorium pull radius");
+		Pool.Add(Opt);
+	}
+
+	return Pool;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Weapon upgrade selection (scrap meter)
+// ────────────────────────────────────────────────────────────────────────────
+
+void AAsteroidSurvivorGameMode::PresentWeaponUpgradeOptions()
+{
+	bSelectingWeaponUpgrade = true;
+	CurrentWeaponUpgradeOptions.Empty();
+
+	TArray<FWeaponUpgradeOption> Pool = BuildWeaponUpgradePool();
+
+	// Shuffle and pick up to 3 unique options
+	const int32 NumOptions = FMath::Min(3, Pool.Num());
+	for (int32 i = 0; i < Pool.Num(); ++i)
+	{
+		const int32 SwapIdx = FMath::RandRange(i, Pool.Num() - 1);
+		Pool.Swap(i, SwapIdx);
+	}
+	for (int32 i = 0; i < NumOptions; ++i)
+	{
+		CurrentWeaponUpgradeOptions.Add(Pool[i]);
+	}
+}
+
+void AAsteroidSurvivorGameMode::ApplyWeaponUpgrade(const FWeaponUpgradeOption& Upgrade)
+{
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(PlayerPawn);
+	if (!Ship)
+	{
+		return;
+	}
+
+	Ship->AddOrUpgradeWeapon(Upgrade.Type);
+}
+
+TArray<FWeaponUpgradeOption> AAsteroidSurvivorGameMode::BuildWeaponUpgradePool()
+{
+	TArray<FWeaponUpgradeOption> Pool;
+
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::SpreadShot;
+		Opt.Name = TEXT("Spread Shot");
+		Opt.Description = TEXT("Fire projectiles in a fan pattern");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::RapidBlaster;
+		Opt.Name = TEXT("Rapid Blaster");
+		Opt.Description = TEXT("+30% fire rate (stacks)");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::RearTurret;
+		Opt.Name = TEXT("Rear Turret");
+		Opt.Description = TEXT("Fire projectiles backward");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::HomingMissile;
+		Opt.Name = TEXT("Homing Missile");
+		Opt.Description = TEXT("Fire missiles at the nearest enemy");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::BlasterUpgrade;
+		Opt.Name = TEXT("Blaster Upgrade");
+		Opt.Description = TEXT("Enhance base blaster with extra projectiles");
 		Pool.Add(Opt);
 	}
 
