@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "WeaponUpgradePickup.h"
 #include "AsteroidSurvivorGameMode.generated.h"
 
 class AAsteroidSurvivorBackground;
@@ -11,7 +12,6 @@ class AAsteroidSurvivorAsteroid;
 class AAsteroidSurvivorShip;
 class AWaveManager;
 enum class EAsteroidSize : uint8;
-enum class EWeaponType : uint8;
 
 /** Types of upgrades the player can choose on level-up. */
 UENUM(BlueprintType)
