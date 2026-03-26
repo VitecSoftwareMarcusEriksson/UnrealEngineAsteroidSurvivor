@@ -101,6 +101,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
 	float ZigzagLineSpacing = 150.0f;
 
+	/** How many additional enemies the cap increases per 60 seconds of elapsed time. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
+	int32 EnemyCapIncreasePerMinute = 5;
+
+	/** Angular spread (degrees, ±) for clustered enemy wave spawning. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
+	float ClusterSpreadAngle = 20.0f;
+
+	/** Radius variation (cm, ±) applied to clustered spawn positions. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
+	float ClusterRadiusVariation = 200.0f;
+
 private:
 	float ElapsedTime = 0.0f;      // Global game timer
 	float WaveTimer = 0.0f;        // Countdown to next wave

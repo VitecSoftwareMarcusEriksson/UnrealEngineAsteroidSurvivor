@@ -61,28 +61,30 @@ void ABossMotherShip::ApplyDifficultyScaling(int32 SpawnNumber)
 		return;
 	}
 
+	const int32 Level = SpawnNumber - 1;
+
 	// Each successive boss gets harder:
-	// HP: +50% per spawn (boss 2 = 750, boss 3 = 1000, boss 4 = 1250, ...)
-	const float HpMultiplier = 1.0f + 0.5f * (SpawnNumber - 1);
+	// HP: scales by HpScalePerSpawn per level (default +50%)
+	const float HpMultiplier = 1.0f + HpScalePerSpawn * Level;
 	MaxHealth *= HpMultiplier;
 	CurrentHealth = MaxHealth;
 
-	// Contact damage: +25% per spawn
-	const float DamageMultiplier = 1.0f + 0.25f * (SpawnNumber - 1);
+	// Contact damage: scales by DamageScalePerSpawn per level (default +25%)
+	const float DamageMultiplier = 1.0f + DamageScalePerSpawn * Level;
 	ContactDamage *= DamageMultiplier;
 
-	// Additional volley projectile every 2 bosses (boss 3 = 4 shots, boss 5 = 5, ...)
-	VolleyCount += (SpawnNumber - 1) / 2;
+	// Additional volley projectile every 2 bosses
+	VolleyCount += Level / 2;
 
 	// Wider spread to accommodate more projectiles
-	VolleySpread = 20.0f + 5.0f * ((SpawnNumber - 1) / 2);
+	VolleySpread = 20.0f + 5.0f * (Level / 2);
 
-	// Faster firing: reduce interval by 10% per spawn, minimum 0.5s
-	FireInterval = FMath::Max(0.5f, FireInterval * FMath::Pow(0.9f, static_cast<float>(SpawnNumber - 1)));
+	// Faster firing: reduce interval geometrically, with a minimum floor
+	FireInterval = FMath::Max(MinFireInterval, FireInterval * FMath::Pow(FireIntervalDecayRate, static_cast<float>(Level)));
 
 	// Score and drops scale with difficulty
 	ScoreValue = static_cast<int32>(ScoreValue * HpMultiplier);
-	ScrapDropCount = static_cast<int32>(ScrapDropCount * (1.0f + 0.3f * (SpawnNumber - 1)));
+	ScrapDropCount = static_cast<int32>(ScrapDropCount * (1.0f + 0.3f * Level));
 }
 
 void ABossMotherShip::UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* PlayerShip)

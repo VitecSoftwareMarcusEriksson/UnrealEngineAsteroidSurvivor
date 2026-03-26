@@ -61,6 +61,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon")
 	float VolleySpread = 20.0f;
 
+	// ── Difficulty scaling parameters ───────────────────────────────────────
+	/** HP multiplier increase per boss spawn (e.g. 0.5 = +50% per spawn). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float HpScalePerSpawn = 0.5f;
+
+	/** Contact damage multiplier increase per boss spawn. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float DamageScalePerSpawn = 0.25f;
+
+	/** Fire interval reduction factor per spawn (multiplied each time). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float FireIntervalDecayRate = 0.9f;
+
+	/** Minimum fire interval in seconds (floor for scaling). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float MinFireInterval = 0.5f;
+
 private:
 	float FireTimer = 0.0f;
 

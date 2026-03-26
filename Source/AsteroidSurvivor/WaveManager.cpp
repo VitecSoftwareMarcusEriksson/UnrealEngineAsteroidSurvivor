@@ -117,8 +117,8 @@ FWaveComposition AWaveManager::BuildWaveForCurrentDifficulty() const
 
 int32 AWaveManager::GetCurrentMaxEnemies() const
 {
-	// Enemy cap grows over time: +5 enemies per 60 seconds, no upper limit
-	return BaseMaxEnemies + static_cast<int32>(ElapsedTime / 60.0f) * 5;
+	// Enemy cap grows over time, no upper limit
+	return BaseMaxEnemies + static_cast<int32>(ElapsedTime / 60.0f) * EnemyCapIncreasePerMinute;
 }
 
 void AWaveManager::SpawnWave(const FWaveComposition& Composition)
@@ -188,11 +188,11 @@ void AWaveManager::SpawnClusteredGroup(EEnemyShipType Type, int32 Count, int32& 
 
 	for (int32 i = 0; i < Count && Budget > 0; ++i)
 	{
-		// Cluster enemies within ±20° of the base direction
-		const float AngleDeviation = FMath::FRandRange(-20.0f, 20.0f);
+		// Cluster enemies within the configured spread angle of the base direction
+		const float AngleDeviation = FMath::FRandRange(-ClusterSpreadAngle, ClusterSpreadAngle);
 		const float Angle = BaseAngle + AngleDeviation;
 		// Slight radius variation so they don't stack exactly
-		const float RadiusVariation = FMath::FRandRange(-200.0f, 200.0f);
+		const float RadiusVariation = FMath::FRandRange(-ClusterRadiusVariation, ClusterRadiusVariation);
 		const FVector Offset(
 			FMath::Cos(FMath::DegreesToRadians(Angle)) * (SpawnRadius + RadiusVariation),
 			FMath::Sin(FMath::DegreesToRadians(Angle)) * (SpawnRadius + RadiusVariation),
