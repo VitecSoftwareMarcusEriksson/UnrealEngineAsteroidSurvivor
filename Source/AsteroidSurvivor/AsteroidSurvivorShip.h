@@ -206,6 +206,10 @@ private:
 	float FireTimer = 0.0f;
 	bool bFiring = false;
 
+	// Homing missile cooldown (independent of the main fire rate)
+	float HomingMissileTimer = 0.0f;
+	float HomingMissileInterval = 1.0f;
+
 	// Engine trail
 	float TrailSpawnTimer = 0.0f;
 	float TrailSpawnInterval = 0.03f;

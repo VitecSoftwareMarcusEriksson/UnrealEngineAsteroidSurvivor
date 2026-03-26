@@ -2,6 +2,7 @@
 
 #include "AsteroidSurvivorProjectile.h"
 #include "AsteroidSurvivorGameMode.h"
+#include "AsteroidSurvivorTrailParticle.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -63,7 +64,7 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 		{
 			// Bright neon green for player projectiles – clearly distinct from red enemy shots.
 			const FLinearColor BaseGreen(0.2f, 1.0f, 0.1f, 1.0f);
-			const FLinearColor EmissiveGreen = BaseGreen * 3.0f;
+			const FLinearColor EmissiveGreen = BaseGreen * 2.0f;
 
 			// BasicShapeMaterial uses "Color"
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseGreen);
@@ -72,7 +73,49 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 			// Emissive parameters (various naming conventions)
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveGreen);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveGreen);
+			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
+			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
+	}
+}
+
+void AAsteroidSurvivorProjectile::SetHomingMissile(bool bHoming)
+{
+	bIsHomingMissile = bHoming;
+
+	if (!bHoming)
+	{
+		return;
+	}
+
+	// Scale up the missile slightly
+	if (ProjectileMesh)
+	{
+		ProjectileMesh->SetRelativeScale3D(FVector(HomingMissileScale));
+
+		// Apply orange-red color via dynamic material
+		UMaterialInstanceDynamic* DynMat = Cast<UMaterialInstanceDynamic>(ProjectileMesh->GetMaterial(0));
+		if (!DynMat)
+		{
+			DynMat = ProjectileMesh->CreateDynamicMaterialInstance(0);
+		}
+		if (DynMat)
+		{
+			const FLinearColor MissileBase(1.0f, 0.5f, 0.1f, 1.0f);
+			const FLinearColor MissileEmissive = MissileBase * 2.0f;
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), MissileBase);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), MissileBase);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), MissileEmissive);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), MissileEmissive);
+			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
+			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
+		}
+	}
+
+	// Change glow light to orange-red
+	if (GlowLight)
+	{
+		GlowLight->SetLightColor(FLinearColor(1.0f, 0.5f, 0.1f));
 	}
 }
 
@@ -91,6 +134,34 @@ void AAsteroidSurvivorProjectile::Tick(float DeltaTime)
 	// Move forward
 	FVector Delta = GetActorForwardVector() * Speed * DeltaTime;
 	AddActorWorldOffset(Delta, true);
+
+	// Smoke trail for homing missiles
+	if (bIsHomingMissile)
+	{
+		HomingMissileTrailTimer -= DeltaTime;
+		if (HomingMissileTrailTimer <= 0.0f)
+		{
+			// Spawn smoke trail behind the missile
+			const FVector TrailOffset = GetActorForwardVector() * HomingMissileTrailOffset;
+			const FVector TrailLocation = GetActorLocation() + TrailOffset;
+
+			FActorSpawnParameters TrailSpawnParams;
+			TrailSpawnParams.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			AAsteroidSurvivorTrailParticle* Trail = GetWorld()->SpawnActor<AAsteroidSurvivorTrailParticle>(
+				AAsteroidSurvivorTrailParticle::StaticClass(),
+				TrailLocation, FRotator::ZeroRotator, TrailSpawnParams);
+
+			if (Trail)
+			{
+				static const FLinearColor MissileSmokeColor(0.6f, 0.6f, 0.6f, 1.0f);
+				Trail->SetSmokeColor(MissileSmokeColor);
+			}
+
+			HomingMissileTrailTimer = HomingMissileTrailInterval;
+		}
+	}
 
 	// Lifetime
 	LifeTimer += DeltaTime;

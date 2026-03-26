@@ -60,11 +60,13 @@ void AScrapPickup::BeginPlay()
 		if (DynMat)
 		{
 			const FLinearColor ScrapBaseColor(1.0f, 0.7f, 0.1f, 1.0f);
-			const FLinearColor ScrapEmissive = ScrapBaseColor * 3.0f;
+			const FLinearColor ScrapEmissive = ScrapBaseColor * 2.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ScrapBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ScrapBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ScrapEmissive);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ScrapEmissive);
+			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
+			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 }

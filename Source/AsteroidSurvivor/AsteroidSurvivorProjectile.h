@@ -9,6 +9,7 @@
 class UStaticMeshComponent;
 class USphereComponent;
 class UPointLightComponent;
+class AAsteroidSurvivorTrailParticle;
 
 /**
  * Projectile fired by the player's ship.
@@ -23,6 +24,12 @@ public:
 	AAsteroidSurvivorProjectile();
 
 	virtual void Tick(float DeltaTime) override;
+
+	/**
+	 * Mark this projectile as a homing missile.
+	 * Scales the mesh up, changes colors to orange-red, and enables smoke trail.
+	 */
+	void SetHomingMissile(bool bHoming);
 
 protected:
 	virtual void BeginPlay() override;
@@ -57,6 +64,13 @@ public:
 
 private:
 	float LifeTimer = 0.0f;
+
+	// Homing missile state
+	bool bIsHomingMissile = false;
+	float HomingMissileTrailTimer = 0.0f;
+	static constexpr float HomingMissileTrailInterval = 0.05f;
+	static constexpr float HomingMissileScale = 0.4f;
+	static constexpr float HomingMissileTrailOffset = -30.0f;
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

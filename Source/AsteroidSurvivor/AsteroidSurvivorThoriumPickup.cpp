@@ -70,11 +70,13 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 		if (DynMat)
 		{
 			const FLinearColor ThoriumBaseColor(0.1f, 0.8f, 1.0f, 1.0f);
-			const FLinearColor ThoriumEmissive = ThoriumBaseColor * 3.0f;
+			const FLinearColor ThoriumEmissive = ThoriumBaseColor * 2.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ThoriumBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ThoriumBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ThoriumEmissive);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ThoriumEmissive);
+			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
+			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 
@@ -90,6 +92,8 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 			GlowMat->SetVectorParameterValue(FName(TEXT("BaseColor")), GlowBaseColor);
 			GlowMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), GlowEmissive);
 			GlowMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), GlowEmissive);
+			GlowMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
+			GlowMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 }

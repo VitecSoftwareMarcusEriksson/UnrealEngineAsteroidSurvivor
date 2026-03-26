@@ -80,6 +80,8 @@ void AEnemyShipBase::BeginPlay()
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveCol);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveCol);
+			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
+			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 

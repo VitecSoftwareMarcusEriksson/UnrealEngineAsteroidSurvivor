@@ -23,6 +23,9 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	/** Override the particle color (e.g. gray smoke for homing missiles). */
+	void SetSmokeColor(const FLinearColor& BaseColor);
+
 protected:
 	virtual void BeginPlay() override;
 
