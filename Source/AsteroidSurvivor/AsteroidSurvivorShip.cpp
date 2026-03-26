@@ -78,9 +78,9 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	// Glow light for player ship visibility
 	UPointLightComponent* ShipGlow = CreateDefaultSubobject<UPointLightComponent>(TEXT("ShipGlow"));
 	ShipGlow->SetupAttachment(CollisionSphere);
-	ShipGlow->SetIntensity(15000.0f);
+	ShipGlow->SetIntensity(30000.0f);
 	ShipGlow->SetLightColor(FLinearColor(0.3f, 0.8f, 1.0f));
-	ShipGlow->SetAttenuationRadius(400.0f);
+	ShipGlow->SetAttenuationRadius(600.0f);
 	ShipGlow->SetCastShadows(false);
 
 	// Top-down camera rig – attached to the collision sphere root so it follows
@@ -131,7 +131,7 @@ void AAsteroidSurvivorShip::BeginPlay()
 		if (DynMat)
 		{
 			const FLinearColor ShipBaseColor(0.1f, 0.7f, 1.0f, 1.0f);
-			const FLinearColor ShipEmissive = ShipBaseColor * 2.0f;
+			const FLinearColor ShipEmissive = ShipBaseColor * 5.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ShipBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipEmissive);
@@ -139,23 +139,25 @@ void AAsteroidSurvivorShip::BeginPlay()
 		}
 	}
 
-	// Shield material – translucent cyan glow
+	// Shield material – translucent cyan glow (semi-transparent)
 	if (ShieldMesh)
 	{
-		if (SolidColorMat)
+		UMaterial* TranslucentMat = FSolidColorMaterialHelper::GetOrCreateTranslucentMaterial();
+		if (TranslucentMat)
 		{
-			ShieldMesh->SetMaterial(0, SolidColorMat);
+			ShieldMesh->SetMaterial(0, TranslucentMat);
 		}
 
 		UMaterialInstanceDynamic* ShieldMat = ShieldMesh->CreateDynamicMaterialInstance(0);
 		if (ShieldMat)
 		{
 			const FLinearColor ShieldBaseColor(0.2f, 0.6f, 1.0f, 0.25f);
-			const FLinearColor ShieldEmissive(0.1f, 0.3f, 0.5f, 0.25f);
+			const FLinearColor ShieldEmissive = FLinearColor(0.3f, 0.7f, 1.0f) * 4.0f;
 			ShieldMat->SetVectorParameterValue(FName(TEXT("Color")), ShieldBaseColor);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShieldBaseColor);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShieldEmissive);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShieldEmissive);
+			ShieldMat->SetScalarParameterValue(FName(TEXT("Opacity")), 0.25f);
 		}
 	}
 

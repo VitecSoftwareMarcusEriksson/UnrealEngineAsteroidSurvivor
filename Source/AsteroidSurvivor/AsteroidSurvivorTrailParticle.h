@@ -45,7 +45,7 @@ protected:
 
 	/** Initial light intensity. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Trail")
-	float InitialLightIntensity = 5000.0f;
+	float InitialLightIntensity = 10000.0f;
 
 private:
 	float LifeTimer = 0.0f;

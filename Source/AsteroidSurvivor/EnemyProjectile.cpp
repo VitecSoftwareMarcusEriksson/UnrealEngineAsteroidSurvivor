@@ -48,9 +48,9 @@ AEnemyProjectile::AEnemyProjectile()
 	// Red glow light
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(15000.0f);
+	GlowLight->SetIntensity(30000.0f);
 	GlowLight->SetLightColor(FLinearColor(1.0f, 0.3f, 0.1f));
-	GlowLight->SetAttenuationRadius(350.0f);
+	GlowLight->SetAttenuationRadius(500.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -73,7 +73,7 @@ void AEnemyProjectile::BeginPlay()
 		{
 			// Bright neon red-orange for enemy projectiles – clearly distinct from green player shots.
 			const FLinearColor BaseRed(1.0f, 0.15f, 0.05f, 1.0f);
-			const FLinearColor EmissiveRed = BaseRed * 3.0f;
+			const FLinearColor EmissiveRed = BaseRed * 6.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveRed);

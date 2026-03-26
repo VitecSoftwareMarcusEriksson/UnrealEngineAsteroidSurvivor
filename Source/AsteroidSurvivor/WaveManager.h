@@ -91,7 +91,7 @@ protected:
 
 	/** Distance from the player at which enemies spawn (cm). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
-	float SpawnRadius = 2000.0f;
+	float SpawnRadius = 2500.0f;
 
 private:
 	float ElapsedTime = 0.0f;      // Global game timer

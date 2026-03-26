@@ -50,9 +50,9 @@ AEnemyShipBase::AEnemyShipBase()
 	// Glow light for visual flair
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(8000.0f);
+	GlowLight->SetIntensity(16000.0f);
 	GlowLight->SetLightColor(FLinearColor(1.0f, 0.2f, 0.2f));
-	GlowLight->SetAttenuationRadius(300.0f);
+	GlowLight->SetAttenuationRadius(500.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -84,7 +84,7 @@ void AEnemyShipBase::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = ShipMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor EmissiveCol = ShipColor * 2.0f;
+			const FLinearColor EmissiveCol = ShipColor * 5.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ShipColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveCol);

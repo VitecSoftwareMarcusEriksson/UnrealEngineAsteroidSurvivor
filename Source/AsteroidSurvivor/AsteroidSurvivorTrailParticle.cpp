@@ -28,7 +28,7 @@ AAsteroidSurvivorTrailParticle::AAsteroidSurvivorTrailParticle()
 	TrailLight->SetupAttachment(ParticleMesh);
 	TrailLight->SetIntensity(InitialLightIntensity);
 	TrailLight->SetLightColor(FLinearColor(1.0f, 0.4f, 0.05f));
-	TrailLight->SetAttenuationRadius(120.0f);
+	TrailLight->SetAttenuationRadius(200.0f);
 	TrailLight->SetCastShadows(false);
 }
 
@@ -50,7 +50,7 @@ void AAsteroidSurvivorTrailParticle::BeginPlay()
 		{
 			// Bright orange/fire color for engine trail
 			const FLinearColor TrailBaseColor(1.0f, 0.4f, 0.05f, 1.0f);
-			const FLinearColor TrailEmissive = TrailBaseColor * 3.0f;
+			const FLinearColor TrailEmissive = TrailBaseColor * 6.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), TrailBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), TrailBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), TrailEmissive);
@@ -99,7 +99,7 @@ void AAsteroidSurvivorTrailParticle::SetSmokeColor(const FLinearColor& BaseColor
 		}
 		if (DynMat)
 		{
-			const FLinearColor SmokeEmissive = BaseColor * 3.0f;
+			const FLinearColor SmokeEmissive = BaseColor * 6.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), SmokeEmissive);

@@ -51,9 +51,9 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 	// ship when the projectile spawns nearby.
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(20000.0f);
+	GlowLight->SetIntensity(40000.0f);
 	GlowLight->SetLightColor(FLinearColor(0.2f, 1.0f, 0.1f));
-	GlowLight->SetAttenuationRadius(400.0f);
+	GlowLight->SetAttenuationRadius(600.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -76,7 +76,7 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 		{
 			// Bright neon green for player projectiles – clearly distinct from red enemy shots.
 			const FLinearColor BaseGreen(0.2f, 1.0f, 0.1f, 1.0f);
-			const FLinearColor EmissiveGreen = BaseGreen * 3.0f;
+			const FLinearColor EmissiveGreen = BaseGreen * 6.0f;
 
 			// BasicShapeMaterial uses "Color"
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseGreen);
@@ -112,7 +112,7 @@ void AAsteroidSurvivorProjectile::SetHomingMissile(bool bHoming)
 		if (DynMat)
 		{
 			const FLinearColor MissileBase(1.0f, 0.5f, 0.1f, 1.0f);
-			const FLinearColor MissileEmissive = MissileBase * 3.0f;
+			const FLinearColor MissileEmissive = MissileBase * 6.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), MissileBase);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), MissileBase);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), MissileEmissive);
@@ -219,6 +219,34 @@ void AAsteroidSurvivorProjectile::OnOverlapBegin(UPrimitiveComponent* Overlapped
 			const FVector ExplosionLoc = GetActorLocation();
 			// Splash deals half the projectile's damage, minimum 1
 			const int32 SplashDamage = FMath::Max(1, Damage / 2);
+
+			// Visual explosion effect – spawn trail particles in a ring
+			const int32 ExplosionParticleCount = 8;
+			for (int32 p = 0; p < ExplosionParticleCount; ++p)
+			{
+				const float Angle = (360.0f / ExplosionParticleCount) * p;
+				FVector ParticleDir(
+					FMath::Cos(FMath::DegreesToRadians(Angle)),
+					FMath::Sin(FMath::DegreesToRadians(Angle)),
+					0.0f);
+
+				const FVector ParticleLoc = ExplosionLoc + ParticleDir * FMath::FRandRange(10.0f, 40.0f);
+
+				FActorSpawnParameters ExpSpawnParams;
+				ExpSpawnParams.SpawnCollisionHandlingOverride =
+					ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+				AAsteroidSurvivorTrailParticle* ExpParticle =
+					GetWorld()->SpawnActor<AAsteroidSurvivorTrailParticle>(
+						AAsteroidSurvivorTrailParticle::StaticClass(),
+						ParticleLoc, FRotator::ZeroRotator, ExpSpawnParams);
+				if (ExpParticle)
+				{
+					// Bright orange-yellow explosion color
+					static const FLinearColor ExplosionColor(1.0f, 0.6f, 0.1f, 1.0f);
+					ExpParticle->SetSmokeColor(ExplosionColor);
+				}
+			}
 
 			for (TActorIterator<AAsteroidSurvivorAsteroid> It(GetWorld()); It; ++It)
 			{
