@@ -7,6 +7,7 @@
 #include "AsteroidSurvivorTrailParticle.h"
 #include "EnemyShipBase.h"
 #include "EnemyProjectile.h"
+#include "SolidColorMaterialHelper.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -117,9 +118,7 @@ void AAsteroidSurvivorShip::BeginPlay()
 
 	// Apply a bright metallic cyan ship material so the player stands out.
 	// Use HDR emissive values and multiple parameter names for material compatibility.
-	// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
-	UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	UMaterial* SolidColorMat = FSolidColorMaterialHelper::GetOrCreateMaterial();
 
 	if (ShipMesh)
 	{

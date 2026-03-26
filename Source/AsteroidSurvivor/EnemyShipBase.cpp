@@ -7,6 +7,7 @@
 #include "AsteroidSurvivorGameMode.h"
 #include "ScrapPickup.h"
 #include "WeaponUpgradePickup.h"
+#include "SolidColorMaterialHelper.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -73,9 +74,8 @@ void AEnemyShipBase::BeginPlay()
 	{
 		ShipMesh->SetRelativeScale3D(FVector(MeshScale));
 
-		// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
-		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
-			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		// Load the shared solid-colour material (with runtime fallback).
+		UMaterial* SolidColorMat = FSolidColorMaterialHelper::GetOrCreateMaterial();
 		if (SolidColorMat)
 		{
 			ShipMesh->SetMaterial(0, SolidColorMat);

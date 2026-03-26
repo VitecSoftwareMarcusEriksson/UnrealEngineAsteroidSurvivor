@@ -5,6 +5,7 @@
 #include "AsteroidSurvivorGameMode.h"
 #include "AsteroidSurvivorTrailParticle.h"
 #include "EnemyShipBase.h"
+#include "SolidColorMaterialHelper.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -63,9 +64,8 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 	// Create a bright green material so the projectile is clearly visible.
 	if (ProjectileMesh)
 	{
-		// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
-		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
-			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		// Load the shared solid-colour material (with runtime fallback).
+		UMaterial* SolidColorMat = FSolidColorMaterialHelper::GetOrCreateMaterial();
 		if (SolidColorMat)
 		{
 			ProjectileMesh->SetMaterial(0, SolidColorMat);

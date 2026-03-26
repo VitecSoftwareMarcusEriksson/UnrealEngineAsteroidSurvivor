@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AsteroidSurvivorBackground.h"
+#include "SolidColorMaterialHelper.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/Material.h"
@@ -202,9 +203,8 @@ void AAsteroidSurvivorBackground::ApplyLayerColor(UInstancedStaticMeshComponent*
 		return;
 	}
 
-	// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
-	UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	// Load the shared solid-colour material (with runtime fallback).
+	UMaterial* SolidColorMat = FSolidColorMaterialHelper::GetOrCreateMaterial();
 	if (SolidColorMat)
 	{
 		ISM->SetMaterial(0, SolidColorMat);

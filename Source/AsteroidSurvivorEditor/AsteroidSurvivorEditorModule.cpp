@@ -125,21 +125,39 @@ void FAsteroidSurvivorEditorModule::EnsureDefaultMaterialsExist()
 
 	if (PlatformFile.FileExists(*FilePath))
 	{
-		// Validate that the existing material has its expressions properly wired.
-		// An earlier version of the creation code used PreEditChange(nullptr) which
-		// could leave the material with broken shader data.
+		// Validate that the existing material has its expressions properly wired
+		// and uses the current material properties (non-flat roughness/metallic).
 		UMaterial* Existing = LoadObject<UMaterial>(nullptr,
 			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
 		if (Existing)
 		{
 			UMaterialEditorOnlyData* EditorData = Existing->GetEditorOnlyData();
-			if (EditorData && EditorData->BaseColor.Expression
-				&& EditorData->EmissiveColor.Expression)
+			bool bIsValid = EditorData
+				&& EditorData->BaseColor.Expression
+				&& EditorData->EmissiveColor.Expression;
+
+			// Also check that roughness is not the old flat value (1.0).
+			// Older versions created the material with Roughness = 1 and
+			// Metallic = 0, which made every object look completely flat.
+			if (bIsValid && EditorData->Roughness.Expression)
+			{
+				if (const UMaterialExpressionConstant* RConst =
+						Cast<UMaterialExpressionConstant>(EditorData->Roughness.Expression))
+				{
+					if (FMath::IsNearlyEqual(RConst->R, 1.0f, 0.01f))
+					{
+						bIsValid = false; // outdated flat material
+					}
+				}
+			}
+
+			if (bIsValid)
 			{
 				return; // Material exists and is valid
 			}
-			// Material is broken – move the old object out of the way so we
-			// can recreate it with the same name.
+
+			// Material is broken or outdated – move the old object out of the
+			// way so we can recreate it with the same name.
 			Existing->Rename(nullptr, GetTransientPackage(),
 				REN_DontCreateRedirectors | REN_NonTransactional);
 		}
@@ -182,15 +200,15 @@ void FAsteroidSurvivorEditorModule::CreateSolidColorMaterial()
 	EmissiveParam->ParameterName = TEXT("EmissiveColor");
 	EmissiveParam->DefaultValue = FLinearColor::Black;
 
-	// ── Metallic constant = 0 ────────────────────────────────────────────
+	// ── Metallic constant – subtle reflectivity for 3-D depth ───────────
 	UMaterialExpressionConstant* MetallicConst =
 		NewObject<UMaterialExpressionConstant>(Material);
-	MetallicConst->R = 0.0f;
+	MetallicConst->R = 0.15f;
 
-	// ── Roughness constant = 1 ───────────────────────────────────────────
+	// ── Roughness constant – moderate specular for visible highlights ────
 	UMaterialExpressionConstant* RoughnessConst =
 		NewObject<UMaterialExpressionConstant>(Material);
-	RoughnessConst->R = 1.0f;
+	RoughnessConst->R = 0.35f;
 
 	// Register expressions with the material
 	Material->GetExpressionCollection().AddExpression(ColorParam);
@@ -209,7 +227,7 @@ void FAsteroidSurvivorEditorModule::CreateSolidColorMaterial()
 	EditorData->Roughness.Expression = RoughnessConst;
 	EditorData->Roughness.OutputIndex = 0;
 
-	// Material settings – Opaque, Default Lit, no reflections
+	// Material settings – Opaque, Default Lit, moderate specular for 3-D depth
 	Material->BlendMode = BLEND_Opaque;
 	Material->SetShadingModel(MSM_DefaultLit);
 
