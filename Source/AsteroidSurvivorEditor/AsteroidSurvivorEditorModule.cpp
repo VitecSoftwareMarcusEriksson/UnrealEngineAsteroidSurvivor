@@ -19,10 +19,13 @@ void FAsteroidSurvivorEditorModule::StartupModule()
 	{
 		EnsureDefaultMapsExist();
 
-		// Defer material creation until after the engine is fully initialised.
-		// Creating / validating material assets during module startup triggers
-		// "UpdateValidators request made before RegisterBlueprintValidators"
-		// warnings and can prevent proper shader compilation.
+		// This module loads at PostEngineInit phase, so the engine is already
+		// fully initialised by the time StartupModule runs.  Create material
+		// assets directly to avoid a race where the OnPostEngineInit delegate
+		// has already fired before this module was loaded.
+		EnsureDefaultMaterialsExist();
+
+		// Also register the delegate as a belt-and-suspenders fallback.
 		PostEngineInitHandle = FCoreDelegates::OnPostEngineInit.AddRaw(
 			this, &FAsteroidSurvivorEditorModule::OnPostEngineInit);
 	}
@@ -151,6 +154,41 @@ void FAsteroidSurvivorEditorModule::EnsureDefaultMaterialsExist()
 				}
 			}
 
+			// Verify that the vector parameters are actually registered and
+			// discoverable by dynamic material instances.  Without valid
+			// ExpressionGUIDs the parameters exist in the graph but
+			// SetVectorParameterValue() on DMIs silently fails.
+			if (bIsValid)
+			{
+				TArray<FMaterialParameterInfo> ParamInfos;
+				TArray<FGuid> ParamGuids;
+				Existing->GetAllVectorParameterInfo(ParamInfos, ParamGuids);
+
+				bool bHasColor = false;
+				bool bHasEmissive = false;
+				for (const FMaterialParameterInfo& Info : ParamInfos)
+				{
+					if (Info.Name == FName(TEXT("Color")))
+					{
+						bHasColor = true;
+					}
+					if (Info.Name == FName(TEXT("EmissiveColor")))
+					{
+						bHasEmissive = true;
+					}
+				}
+
+				if (!bHasColor || !bHasEmissive)
+				{
+					UE_LOG(LogTemp, Warning,
+						TEXT("AsteroidSurvivor: M_SolidColor on disk is missing "
+						     "registered vector parameters (Color=%d, "
+						     "EmissiveColor=%d). Regenerating."),
+						bHasColor, bHasEmissive);
+					bIsValid = false;
+				}
+			}
+
 			if (bIsValid)
 			{
 				return; // Material exists and is valid
@@ -193,12 +231,14 @@ void FAsteroidSurvivorEditorModule::CreateSolidColorMaterial()
 		NewObject<UMaterialExpressionVectorParameter>(Material);
 	ColorParam->ParameterName = TEXT("Color");
 	ColorParam->DefaultValue = FLinearColor::White;
+	ColorParam->ExpressionGUID = FGuid::NewGuid();
 
 	// ── "EmissiveColor" vector parameter → Emissive Color ────────────────
 	UMaterialExpressionVectorParameter* EmissiveParam =
 		NewObject<UMaterialExpressionVectorParameter>(Material);
 	EmissiveParam->ParameterName = TEXT("EmissiveColor");
 	EmissiveParam->DefaultValue = FLinearColor::Black;
+	EmissiveParam->ExpressionGUID = FGuid::NewGuid();
 
 	// ── Metallic constant – subtle reflectivity for 3-D depth ───────────
 	UMaterialExpressionConstant* MetallicConst =
