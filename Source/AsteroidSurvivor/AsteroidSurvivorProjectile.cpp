@@ -1,13 +1,16 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AsteroidSurvivorProjectile.h"
+#include "AsteroidSurvivorAsteroid.h"
 #include "AsteroidSurvivorGameMode.h"
 #include "AsteroidSurvivorTrailParticle.h"
+#include "EnemyShipBase.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
+#include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 
 AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
@@ -115,6 +118,30 @@ void AAsteroidSurvivorProjectile::SetHomingMissile(bool bHoming)
 	}
 }
 
+void AAsteroidSurvivorProjectile::SetDamage(int32 NewDamage)
+{
+	Damage = NewDamage;
+}
+
+void AAsteroidSurvivorProjectile::SetSpeed(float NewSpeed)
+{
+	Speed = NewSpeed;
+}
+
+void AAsteroidSurvivorProjectile::SetScaleMultiplier(float Mult)
+{
+	if (ProjectileMesh)
+	{
+		ProjectileMesh->SetRelativeScale3D(FVector(0.25f * Mult));
+	}
+}
+
+void AAsteroidSurvivorProjectile::SetExplosiveRounds(bool bHasExplosion, float InRadius)
+{
+	bIsExplosive = bHasExplosion;
+	ExplosionRadius = InRadius;
+}
+
 void AAsteroidSurvivorProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -177,6 +204,32 @@ void AAsteroidSurvivorProjectile::OnOverlapBegin(UPrimitiveComponent* Overlapped
 	if (OtherActor && OtherActor != this && OtherActor != GetOwner()
 		&& !OtherActor->IsA(AAsteroidSurvivorProjectile::StaticClass()))
 	{
+		// Explosive rounds: deal splash damage to nearby asteroids and enemies
+		if (bIsExplosive && ExplosionRadius > 0.0f)
+		{
+			const FVector ExplosionLoc = GetActorLocation();
+			// Splash deals half the projectile's damage, minimum 1
+			const int32 SplashDamage = FMath::Max(1, Damage / 2);
+
+			for (TActorIterator<AAsteroidSurvivorAsteroid> It(GetWorld()); It; ++It)
+			{
+				if (*It != OtherActor &&
+					FVector::Dist(ExplosionLoc, (*It)->GetActorLocation()) <= ExplosionRadius)
+				{
+					(*It)->ApplySplashDamage(SplashDamage);
+				}
+			}
+
+			for (TActorIterator<AEnemyShipBase> It(GetWorld()); It; ++It)
+			{
+				if (*It != OtherActor &&
+					FVector::Dist(ExplosionLoc, (*It)->GetActorLocation()) <= ExplosionRadius)
+				{
+					(*It)->ApplyDamage(static_cast<float>(SplashDamage));
+				}
+			}
+		}
+
 		Destroy();
 	}
 }

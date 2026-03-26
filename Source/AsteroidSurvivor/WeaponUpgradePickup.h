@@ -17,6 +17,11 @@ class UPointLightComponent;
  * - RapidBlaster:  Significantly increases fire rate.
  * - RearTurret:    Fires a projectile backward in addition to the forward shot.
  * - HomingMissile: Fires a slow-tracking projectile toward the nearest enemy.
+ * - OrbitalDrones: Spawns drone projectiles that orbit the ship on a cooldown.
+ * - PlasmaCannon:  Fires a slow, large, high-damage projectile on a cooldown.
+ * - LightningChain: Fires a burst of chain projectiles in the forward direction.
+ * - MineLauncher:  Drops a stationary mine behind the ship on a cooldown.
+ * - SideGuns:      Fires projectiles perpendicular to the ship (left and right).
  */
 UENUM(BlueprintType)
 enum class EWeaponType : uint8
@@ -25,7 +30,12 @@ enum class EWeaponType : uint8
 	RapidBlaster,
 	RearTurret,
 	HomingMissile,
-	BlasterUpgrade   // Enhances the base blaster with extra projectiles
+	BlasterUpgrade,  // Enhances the base blaster with extra projectiles
+	OrbitalDrones,   // Spawns drone projectiles that orbit the ship
+	PlasmaCannon,    // Fires a slow, large, piercing projectile
+	LightningChain,  // Fires a burst of projectiles that chain to nearby enemies
+	MineLauncher,    // Drops a stationary mine behind the ship
+	SideGuns         // Fires projectiles perpendicular to the ship
 };
 
 /**

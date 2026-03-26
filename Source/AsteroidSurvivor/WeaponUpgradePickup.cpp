@@ -71,9 +71,20 @@ void AWeaponUpgradePickup::BeginPlay()
 
 void AWeaponUpgradePickup::InitPickup()
 {
-	// Randomly select a weapon type
-	const int32 TypeIndex = FMath::RandRange(0, 3);
-	WeaponType = static_cast<EWeaponType>(TypeIndex);
+	// Valid weapon types that can be randomly assigned to this pickup.
+	// BlasterUpgrade is excluded as it is awarded through a different path.
+	const TArray<EWeaponType> ValidTypes = {
+		EWeaponType::SpreadShot,
+		EWeaponType::RapidBlaster,
+		EWeaponType::RearTurret,
+		EWeaponType::HomingMissile,
+		EWeaponType::OrbitalDrones,
+		EWeaponType::PlasmaCannon,
+		EWeaponType::LightningChain,
+		EWeaponType::MineLauncher,
+		EWeaponType::SideGuns,
+	};
+	WeaponType = ValidTypes[FMath::RandRange(0, ValidTypes.Num() - 1)];
 }
 
 FString AWeaponUpgradePickup::GetWeaponDisplayName(EWeaponType Type)
@@ -85,6 +96,11 @@ FString AWeaponUpgradePickup::GetWeaponDisplayName(EWeaponType Type)
 	case EWeaponType::RearTurret:      return TEXT("Rear Turret");
 	case EWeaponType::HomingMissile:   return TEXT("Homing Missile");
 	case EWeaponType::BlasterUpgrade:  return TEXT("Blaster Upgrade");
+	case EWeaponType::OrbitalDrones:   return TEXT("Orbital Drones");
+	case EWeaponType::PlasmaCannon:    return TEXT("Plasma Cannon");
+	case EWeaponType::LightningChain:  return TEXT("Lightning Chain");
+	case EWeaponType::MineLauncher:    return TEXT("Mine Launcher");
+	case EWeaponType::SideGuns:        return TEXT("Side Guns");
 	default:                           return TEXT("Unknown Weapon");
 	}
 }
@@ -120,7 +136,7 @@ void AWeaponUpgradePickup::Tick(float DeltaTime)
 		AAsteroidSurvivorShip* Ship = Cast<AAsteroidSurvivorShip>(PlayerPawn);
 		if (Ship)
 		{
-			EffectivePullRadius *= Ship->GetThoriumMagnetMultiplier();
+			EffectivePullRadius *= Ship->GetScrapMagnetMultiplier();
 		}
 
 		if (DistToShip <= EffectivePullRadius)

@@ -172,6 +172,35 @@ float AAsteroidSurvivorAsteroid::GetDamageAmount() const
 	}
 }
 
+void AAsteroidSurvivorAsteroid::ApplySplashDamage(int32 DamageAmount)
+{
+	if (bExploding)
+	{
+		return;
+	}
+
+	CurrentHealth -= static_cast<float>(DamageAmount);
+
+	if (CurrentHealth <= 0.0f)
+	{
+		AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+			UGameplayStatics::GetGameMode(this));
+		if (GM)
+		{
+			int32 Points = 0;
+			switch (AsteroidSize)
+			{
+			case EAsteroidSize::Large:  Points = 20;  break;
+			case EAsteroidSize::Medium: Points = 50;  break;
+			case EAsteroidSize::Small:  Points = 100; break;
+			}
+			GM->AddScore(Points);
+		}
+
+		Explode(/*bDropThorium=*/ true);
+	}
+}
+
 float AAsteroidSurvivorAsteroid::GetMaxHealthForSize() const
 {
 	switch (AsteroidSize)

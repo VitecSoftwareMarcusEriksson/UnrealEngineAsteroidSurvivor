@@ -190,6 +190,27 @@ void AAsteroidSurvivorGameMode::ApplyUpgrade(const FUpgradeOption& Upgrade)
 	case EUpgradeType::ThoriumMagnet:
 		Ship->UpgradeThoriumMagnet(1.50f);
 		break;
+	case EUpgradeType::DamageBoost:
+		Ship->UpgradeDamageBoost();
+		break;
+	case EUpgradeType::ProjectileSize:
+		Ship->UpgradeProjectileSize();
+		break;
+	case EUpgradeType::ExplosiveRounds:
+		Ship->UpgradeExplosiveRounds();
+		break;
+	case EUpgradeType::DoubleShot:
+		Ship->UpgradeDoubleShot();
+		break;
+	case EUpgradeType::CriticalHit:
+		Ship->UpgradeCriticalHit();
+		break;
+	case EUpgradeType::ScrapMagnet:
+		Ship->UpgradeScrapMagnet(1.50f);
+		break;
+	case EUpgradeType::Armor:
+		Ship->UpgradeArmor();
+		break;
 	}
 }
 
@@ -244,6 +265,55 @@ TArray<FUpgradeOption> AAsteroidSurvivorGameMode::BuildUpgradePool()
 		Opt.Type = EUpgradeType::ThoriumMagnet;
 		Opt.Name = TEXT("Thorium Magnet");
 		Opt.Description = TEXT("+50% Thorium pull radius");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::DamageBoost;
+		Opt.Name = TEXT("Weapons Overcharge");
+		Opt.Description = TEXT("+20% projectile damage (stacks)");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::ProjectileSize;
+		Opt.Name = TEXT("Expanded Payload");
+		Opt.Description = TEXT("+25% projectile size (stacks)");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::ExplosiveRounds;
+		Opt.Name = TEXT("Explosive Rounds");
+		Opt.Description = TEXT("Projectiles deal AoE splash damage on hit");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::DoubleShot;
+		Opt.Name = TEXT("Double Shot");
+		Opt.Description = TEXT("Fire an extra projectile side by side (stacks)");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::CriticalHit;
+		Opt.Name = TEXT("Critical Systems");
+		Opt.Description = TEXT("15% chance to deal 2x damage");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::ScrapMagnet;
+		Opt.Name = TEXT("Scrap Magnet");
+		Opt.Description = TEXT("+50% scrap & pickup pull radius");
+		Pool.Add(Opt);
+	}
+	{
+		FUpgradeOption Opt;
+		Opt.Type = EUpgradeType::Armor;
+		Opt.Name = TEXT("Ablative Armor");
+		Opt.Description = TEXT("Reduce incoming damage by 10% (stacks)");
 		Pool.Add(Opt);
 	}
 
@@ -323,6 +393,41 @@ TArray<FWeaponUpgradeOption> AAsteroidSurvivorGameMode::BuildWeaponUpgradePool()
 		Opt.Type = EWeaponType::BlasterUpgrade;
 		Opt.Name = TEXT("Blaster Upgrade");
 		Opt.Description = TEXT("Enhance base blaster with extra projectiles");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::OrbitalDrones;
+		Opt.Name = TEXT("Orbital Drones");
+		Opt.Description = TEXT("Drones orbit your ship and fire outward. +1 drone per level");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::PlasmaCannon;
+		Opt.Name = TEXT("Plasma Cannon");
+		Opt.Description = TEXT("Slow, large, high-damage projectile. Bigger and harder per level");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::LightningChain;
+		Opt.Name = TEXT("Lightning Chain");
+		Opt.Description = TEXT("Rapid burst of chain projectiles. +1 projectile per level");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::MineLauncher;
+		Opt.Name = TEXT("Mine Launcher");
+		Opt.Description = TEXT("Drop a stationary mine behind the ship. Cooldown reduces per level");
+		Pool.Add(Opt);
+	}
+	{
+		FWeaponUpgradeOption Opt;
+		Opt.Type = EWeaponType::SideGuns;
+		Opt.Name = TEXT("Side Guns");
+		Opt.Description = TEXT("Fire projectiles left and right. +1 pair per level");
 		Pool.Add(Opt);
 	}
 

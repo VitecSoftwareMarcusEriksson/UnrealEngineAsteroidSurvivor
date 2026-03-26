@@ -48,6 +48,9 @@ public:
 	/** Returns the damage this asteroid deals to the player ship on collision. */
 	float GetDamageAmount() const;
 
+	/** Apply splash damage from an explosive projectile (no thorium drop or splits). */
+	void ApplySplashDamage(int32 DamageAmount);
+
 protected:
 	virtual void BeginPlay() override;
 
