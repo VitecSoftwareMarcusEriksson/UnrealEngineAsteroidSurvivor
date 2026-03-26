@@ -8,6 +8,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -47,6 +48,14 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	if (SphereMeshAsset.Succeeded())
 	{
 		AsteroidMesh->SetStaticMesh(SphereMeshAsset.Object);
+	}
+
+	// Override with M_SolidColor for reliable per-instance colour
+	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	if (SolidColorMat.Succeeded())
+	{
+		AsteroidMesh->SetMaterial(0, SolidColorMat.Object);
 	}
 }
 

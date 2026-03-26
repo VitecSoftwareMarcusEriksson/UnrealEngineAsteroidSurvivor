@@ -9,6 +9,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -44,6 +45,14 @@ AAsteroidSurvivorProjectile::AAsteroidSurvivorProjectile()
 		ProjectileMesh->SetStaticMesh(SphereMeshAsset.Object);
 	}
 	ProjectileMesh->SetRelativeScale3D(FVector(0.25f));
+
+	// Override with M_SolidColor for reliable per-instance colour
+	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	if (SolidColorMat.Succeeded())
+	{
+		ProjectileMesh->SetMaterial(0, SolidColorMat.Object);
+	}
 
 	// Point light for a subtle glow; kept small to avoid illuminating the
 	// ship when the projectile spawns nearby.

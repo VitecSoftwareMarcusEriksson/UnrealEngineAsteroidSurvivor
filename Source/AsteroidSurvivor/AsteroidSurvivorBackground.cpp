@@ -3,6 +3,7 @@
 #include "AsteroidSurvivorBackground.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -18,6 +19,10 @@ AAsteroidSurvivorBackground::AAsteroidSurvivorBackground()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(
 		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 
+	// Override with M_SolidColor for reliable per-instance colour
+	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+
 	auto InitISM = [&](UInstancedStaticMeshComponent* ISM)
 	{
 		ISM->SetupAttachment(Root);
@@ -27,6 +32,10 @@ AAsteroidSurvivorBackground::AAsteroidSurvivorBackground()
 		if (SphereMesh.Succeeded())
 		{
 			ISM->SetStaticMesh(SphereMesh.Object);
+		}
+		if (SolidColorMat.Succeeded())
+		{
+			ISM->SetMaterial(0, SolidColorMat.Object);
 		}
 	};
 

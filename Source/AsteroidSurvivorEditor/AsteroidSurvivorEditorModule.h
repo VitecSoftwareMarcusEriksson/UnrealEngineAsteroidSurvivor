@@ -24,4 +24,15 @@ private:
 	 * @param PackageName  Long package name, e.g. "/Game/Maps/GameLevel"
 	 */
 	void CreateMinimalMap(const FString& PackageName);
+
+	/** Create shared material assets if they do not exist on disk. */
+	void EnsureDefaultMaterialsExist();
+
+	/**
+	 * Create M_SolidColor – a simple opaque material with a "Color" vector
+	 * parameter driving Base Color and an "EmissiveColor" parameter driving
+	 * Emissive Color.  Metallic is 0 and Roughness is 1 so objects display
+	 * pure, reflection-free colour.
+	 */
+	void CreateSolidColorMaterial();
 };

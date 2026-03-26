@@ -7,6 +7,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -39,6 +40,14 @@ AWeaponUpgradePickup::AWeaponUpgradePickup()
 		PickupMesh->SetStaticMesh(CylinderMeshAsset.Object);
 	}
 	PickupMesh->SetRelativeScale3D(FVector(0.2f, 0.2f, 0.1f));
+
+	// Override with M_SolidColor for reliable per-instance colour
+	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	if (SolidColorMat.Succeeded())
+	{
+		PickupMesh->SetMaterial(0, SolidColorMat.Object);
+	}
 
 	// Bright white-blue glow
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));

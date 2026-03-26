@@ -7,6 +7,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -39,6 +40,14 @@ AScrapPickup::AScrapPickup()
 		PickupMesh->SetStaticMesh(CubeMeshAsset.Object);
 	}
 	PickupMesh->SetRelativeScale3D(FVector(0.12f));
+
+	// Override with M_SolidColor for reliable per-instance colour
+	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	if (SolidColorMat.Succeeded())
+	{
+		PickupMesh->SetMaterial(0, SolidColorMat.Object);
+	}
 
 	// Orange / gold glow
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
