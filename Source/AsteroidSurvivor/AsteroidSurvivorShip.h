@@ -83,6 +83,9 @@ public:
 	/** Returns the current base blaster level (for HUD display). */
 	int32 GetBlasterLevel() const { return BlasterLevel; }
 
+	/** Returns whether the ship is currently firing (toggled on). */
+	bool IsFiring() const { return bFiring; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;

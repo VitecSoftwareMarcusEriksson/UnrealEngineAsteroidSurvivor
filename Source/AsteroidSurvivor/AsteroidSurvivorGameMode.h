@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "WeaponUpgradePickup.h"
 #include "AsteroidSurvivorGameMode.generated.h"
 
 class AAsteroidSurvivorBackground;
@@ -33,6 +34,22 @@ struct FUpgradeOption
 
 	UPROPERTY(BlueprintReadOnly)
 	EUpgradeType Type = EUpgradeType::MaxHealth;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString Name;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString Description;
+};
+
+/** Describes a single weapon upgrade option presented when the scrap meter fills. */
+USTRUCT(BlueprintType)
+struct FWeaponUpgradeOption
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	EWeaponType Type = EWeaponType::SpreadShot;
 
 	UPROPERTY(BlueprintReadOnly)
 	FString Name;
@@ -72,6 +89,9 @@ public:
 	/** Player selected an upgrade option (index 0–2). */
 	void SelectUpgrade(int32 Index);
 
+	/** Player selected a weapon upgrade option (index 0–2). */
+	void SelectWeaponUpgrade(int32 Index);
+
 	// ── Accessors ───────────────────────────────────────────────────────────
 	int32 GetScore() const { return Score; }
 	bool IsGameOver() const { return bGameOver; }
@@ -81,9 +101,19 @@ public:
 	int32 GetThoriumForNextLevel() const { return ThoriumForNextLevel; }
 
 	int32 GetCurrentScrap() const { return CurrentScrap; }
+	int32 GetScrapForNextWeaponLevel() const { return ScrapForNextWeaponLevel; }
 
-	bool IsSelectingUpgrade() const { return bSelectingUpgrade; }
+	/** Returns true if any upgrade selection is active (stat or weapon). */
+	bool IsSelectingUpgrade() const { return bSelectingUpgrade || bSelectingWeaponUpgrade; }
+
+	/** Returns true if selecting a stat upgrade (Thorium level-up). */
+	bool IsSelectingStatUpgrade() const { return bSelectingUpgrade; }
+
+	/** Returns true if selecting a weapon upgrade (scrap meter). */
+	bool IsSelectingWeaponUpgrade() const { return bSelectingWeaponUpgrade; }
+
 	const TArray<FUpgradeOption>& GetCurrentUpgradeOptions() const { return CurrentUpgradeOptions; }
+	const TArray<FWeaponUpgradeOption>& GetCurrentWeaponUpgradeOptions() const { return CurrentWeaponUpgradeOptions; }
 
 	/** Returns the WaveManager actor (used by HUD for timer/boss info). */
 	AWaveManager* GetWaveManager() const { return WaveManagerActor; }
@@ -123,10 +153,16 @@ private:
 
 	// Scrap currency (collected from enemy ships)
 	int32 CurrentScrap = 0;
+	int32 ScrapForNextWeaponLevel = 25;
+	int32 CurrentWeaponLevel = 0;
 
 	// Upgrade selection
 	bool bSelectingUpgrade = false;
 	TArray<FUpgradeOption> CurrentUpgradeOptions;
+
+	// Weapon upgrade selection (scrap meter)
+	bool bSelectingWeaponUpgrade = false;
+	TArray<FWeaponUpgradeOption> CurrentWeaponUpgradeOptions;
 
 	UPROPERTY()
 	AAsteroidSurvivorBackground* Background = nullptr;
@@ -148,11 +184,20 @@ private:
 	/** Begins the upgrade-selection phase by picking 3 random upgrade options. */
 	void PresentUpgradeOptions();
 
+	/** Begins the weapon-upgrade-selection phase by picking 3 random weapon options. */
+	void PresentWeaponUpgradeOptions();
+
 	/** Applies the chosen upgrade to the player ship. */
 	void ApplyUpgrade(const FUpgradeOption& Upgrade);
 
+	/** Applies the chosen weapon upgrade to the player ship. */
+	void ApplyWeaponUpgrade(const FWeaponUpgradeOption& Upgrade);
+
 	/** Builds the master list of all possible upgrade options. */
 	static TArray<FUpgradeOption> BuildUpgradePool();
+
+	/** Builds the list of all possible weapon upgrade options. */
+	static TArray<FWeaponUpgradeOption> BuildWeaponUpgradePool();
 
 	/**
 	 * Spawns a default directional light when the level has no lighting,

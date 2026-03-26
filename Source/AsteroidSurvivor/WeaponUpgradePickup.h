@@ -24,7 +24,8 @@ enum class EWeaponType : uint8
 	SpreadShot,
 	RapidBlaster,
 	RearTurret,
-	HomingMissile
+	HomingMissile,
+	BlasterUpgrade   // Enhances the base blaster with extra projectiles
 };
 
 /**

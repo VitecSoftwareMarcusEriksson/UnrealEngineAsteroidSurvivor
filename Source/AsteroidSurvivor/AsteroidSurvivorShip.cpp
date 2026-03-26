@@ -11,6 +11,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 #include "EnhancedInputComponent.h"
@@ -72,6 +73,14 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	ShieldMesh->SetRelativeScale3D(FVector(1.2f));
 	ShieldMesh->SetVisibility(false);
 
+	// Glow light for player ship visibility
+	UPointLightComponent* ShipGlow = CreateDefaultSubobject<UPointLightComponent>(TEXT("ShipGlow"));
+	ShipGlow->SetupAttachment(CollisionSphere);
+	ShipGlow->SetIntensity(15000.0f);
+	ShipGlow->SetLightColor(FLinearColor(0.3f, 0.8f, 1.0f));
+	ShipGlow->SetAttenuationRadius(400.0f);
+	ShipGlow->SetCastShadows(false);
+
 	// Top-down camera rig – attached to the collision sphere root so it follows
 	// the actor position without being affected by mesh rotation.
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -105,14 +114,14 @@ void AAsteroidSurvivorShip::BeginPlay()
 	MaxHealth = BaseMaxHealth;
 	CurrentHealth = MaxHealth;
 
-	// Apply a bright metallic blue ship material for a more spaceship-like look.
+	// Apply a bright metallic cyan ship material so the player stands out.
 	// Use HDR emissive values and multiple parameter names for material compatibility.
 	if (ShipMesh)
 	{
 		UMaterialInstanceDynamic* DynMat = ShipMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor ShipColor(0.6f, 1.2f, 3.0f, 1.0f);
+			const FLinearColor ShipColor(1.0f, 8.0f, 12.0f, 1.0f);
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ShipColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipColor);
@@ -333,13 +342,17 @@ void AAsteroidSurvivorShip::StartFire()
 		return;
 	}
 
-	bFiring = true;
-	FireTimer = 0.0f; // fire immediately on press
+	// Toggle firing on/off
+	bFiring = !bFiring;
+	if (bFiring)
+	{
+		FireTimer = 0.0f; // fire immediately on toggle-on
+	}
 }
 
 void AAsteroidSurvivorShip::StopFire()
 {
-	bFiring = false;
+	// No-op: firing is now toggled by StartFire
 }
 
 void AAsteroidSurvivorShip::Fire()
@@ -368,9 +381,13 @@ void AAsteroidSurvivorShip::OnSelectUpgrade1()
 {
 	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
 		UGameplayStatics::GetGameMode(this));
-	if (GM && GM->IsSelectingUpgrade())
+	if (GM && GM->IsSelectingStatUpgrade())
 	{
 		GM->SelectUpgrade(0);
+	}
+	else if (GM && GM->IsSelectingWeaponUpgrade())
+	{
+		GM->SelectWeaponUpgrade(0);
 	}
 }
 
@@ -378,9 +395,13 @@ void AAsteroidSurvivorShip::OnSelectUpgrade2()
 {
 	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
 		UGameplayStatics::GetGameMode(this));
-	if (GM && GM->IsSelectingUpgrade())
+	if (GM && GM->IsSelectingStatUpgrade())
 	{
 		GM->SelectUpgrade(1);
+	}
+	else if (GM && GM->IsSelectingWeaponUpgrade())
+	{
+		GM->SelectWeaponUpgrade(1);
 	}
 }
 
@@ -388,9 +409,13 @@ void AAsteroidSurvivorShip::OnSelectUpgrade3()
 {
 	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
 		UGameplayStatics::GetGameMode(this));
-	if (GM && GM->IsSelectingUpgrade())
+	if (GM && GM->IsSelectingStatUpgrade())
 	{
 		GM->SelectUpgrade(2);
+	}
+	else if (GM && GM->IsSelectingWeaponUpgrade())
+	{
+		GM->SelectWeaponUpgrade(2);
 	}
 }
 
@@ -560,6 +585,13 @@ void AAsteroidSurvivorShip::UpgradeThoriumMagnet(float Multiplier)
 
 void AAsteroidSurvivorShip::AddOrUpgradeWeapon(EWeaponType Type)
 {
+	// BlasterUpgrade directly enhances the base blaster level
+	if (Type == EWeaponType::BlasterUpgrade)
+	{
+		BlasterLevel++;
+		return;
+	}
+
 	if (int32* Level = WeaponArsenal.Find(Type))
 	{
 		// Stack the upgrade – max level 3

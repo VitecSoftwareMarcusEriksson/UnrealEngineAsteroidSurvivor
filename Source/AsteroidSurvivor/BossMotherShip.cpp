@@ -3,6 +3,7 @@
 #include "BossMotherShip.h"
 #include "EnemyProjectile.h"
 #include "AsteroidSurvivorShip.h"
+#include "AsteroidSurvivorGameMode.h"
 #include "Kismet/GameplayStatics.h"
 
 ABossMotherShip::ABossMotherShip()
@@ -15,9 +16,9 @@ ABossMotherShip::ABossMotherShip()
 	ScoreValue = 500;
 	CollisionRadius = 100.0f;
 	MeshScale = 2.0f;
-	ShipColor = FLinearColor(12.0f, 0.3f, 6.0f, 1.0f); // Bright neon hot-pink / magenta
-	ScrapDropCount = 8;
-	ScrapPerPickup = 3;
+	ShipColor = FLinearColor(16.0f, 0.4f, 8.0f, 1.0f); // Bright neon hot-pink / magenta
+	ScrapDropCount = 10;
+	ScrapPerPickup = 4;   // Largest enemy, most scrap per drop
 	WeaponDropChance = 0.50f; // 50% weapon drop chance
 	DespawnDistance = 5000.0f; // Bosses linger longer
 
@@ -28,6 +29,14 @@ ABossMotherShip::ABossMotherShip()
 void ABossMotherShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// Freeze firing during upgrade selection (movement is already frozen in base class)
+	AAsteroidSurvivorGameMode* GM = Cast<AAsteroidSurvivorGameMode>(
+		UGameplayStatics::GetGameMode(this));
+	if (GM && GM->IsSelectingUpgrade())
+	{
+		return;
+	}
 
 	// Firing logic
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
