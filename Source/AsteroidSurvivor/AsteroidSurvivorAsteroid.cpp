@@ -49,14 +49,6 @@ AAsteroidSurvivorAsteroid::AAsteroidSurvivorAsteroid()
 	{
 		AsteroidMesh->SetStaticMesh(SphereMeshAsset.Object);
 	}
-
-	// Override with M_SolidColor for reliable per-instance colour
-	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
-	if (SolidColorMat.Succeeded())
-	{
-		AsteroidMesh->SetMaterial(0, SolidColorMat.Object);
-	}
 }
 
 void AAsteroidSurvivorAsteroid::BeginPlay()
@@ -72,6 +64,16 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 	// Thorium-bearing asteroids get a subtle cyan tint to hint at their contents.
 	if (AsteroidMesh)
 	{
+		// Load M_SolidColor at runtime – the material may not have been
+		// available during CDO construction (the editor module creates it
+		// after game-module CDOs are constructed).
+		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
+			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		if (SolidColorMat)
+		{
+			AsteroidMesh->SetMaterial(0, SolidColorMat);
+		}
+
 		UMaterialInstanceDynamic* DynMat = AsteroidMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{

@@ -44,14 +44,6 @@ AEnemyProjectile::AEnemyProjectile()
 	}
 	ProjectileMesh->SetRelativeScale3D(FVector(0.2f));
 
-	// Override with M_SolidColor for reliable per-instance colour
-	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
-	if (SolidColorMat.Succeeded())
-	{
-		ProjectileMesh->SetMaterial(0, SolidColorMat.Object);
-	}
-
 	// Red glow light
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
@@ -68,6 +60,14 @@ void AEnemyProjectile::BeginPlay()
 	// Red-orange emissive material to distinguish from player projectiles
 	if (ProjectileMesh)
 	{
+		// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
+		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
+			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		if (SolidColorMat)
+		{
+			ProjectileMesh->SetMaterial(0, SolidColorMat);
+		}
+
 		UMaterialInstanceDynamic* DynMat = ProjectileMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{

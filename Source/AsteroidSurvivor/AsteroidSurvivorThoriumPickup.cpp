@@ -51,15 +51,6 @@ AAsteroidSurvivorThoriumPickup::AAsteroidSurvivorThoriumPickup()
 	}
 	OuterGlowMesh->SetRelativeScale3D(FVector(OuterGlowScale));
 
-	// Override with M_SolidColor for reliable per-instance colour
-	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
-	if (SolidColorMat.Succeeded())
-	{
-		PickupMesh->SetMaterial(0, SolidColorMat.Object);
-		OuterGlowMesh->SetMaterial(0, SolidColorMat.Object);
-	}
-
 	// Bright glow light
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
@@ -74,8 +65,17 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 	Super::BeginPlay();
 
 	// Bright cyan / teal emissive material for the Thorium particle
+	// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
+	UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+
 	if (PickupMesh)
 	{
+		if (SolidColorMat)
+		{
+			PickupMesh->SetMaterial(0, SolidColorMat);
+		}
+
 		UMaterialInstanceDynamic* DynMat = PickupMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
@@ -91,6 +91,11 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 	// Outer glow mesh – translucent bright aura
 	if (OuterGlowMesh)
 	{
+		if (SolidColorMat)
+		{
+			OuterGlowMesh->SetMaterial(0, SolidColorMat);
+		}
+
 		UMaterialInstanceDynamic* GlowMat = OuterGlowMesh->CreateDynamicMaterialInstance(0);
 		if (GlowMat)
 		{

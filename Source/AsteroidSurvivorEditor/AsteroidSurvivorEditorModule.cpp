@@ -4,6 +4,7 @@
 #include "Modules/ModuleManager.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
+#include "Misc/CoreDelegates.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 #include "Engine/World.h"
@@ -17,12 +18,27 @@ void FAsteroidSurvivorEditorModule::StartupModule()
 	if (!IsRunningCommandlet() && !IsRunningGame())
 	{
 		EnsureDefaultMapsExist();
-		EnsureDefaultMaterialsExist();
+
+		// Defer material creation until after the engine is fully initialised.
+		// Creating / validating material assets during module startup triggers
+		// "UpdateValidators request made before RegisterBlueprintValidators"
+		// warnings and can prevent proper shader compilation.
+		PostEngineInitHandle = FCoreDelegates::OnPostEngineInit.AddRaw(
+			this, &FAsteroidSurvivorEditorModule::OnPostEngineInit);
 	}
 }
 
 void FAsteroidSurvivorEditorModule::ShutdownModule()
 {
+	if (PostEngineInitHandle.IsValid())
+	{
+		FCoreDelegates::OnPostEngineInit.Remove(PostEngineInitHandle);
+	}
+}
+
+void FAsteroidSurvivorEditorModule::OnPostEngineInit()
+{
+	EnsureDefaultMaterialsExist();
 }
 
 void FAsteroidSurvivorEditorModule::EnsureDefaultMapsExist()
@@ -107,10 +123,30 @@ void FAsteroidSurvivorEditorModule::EnsureDefaultMaterialsExist()
 	const FString FilePath = FPackageName::LongPackageNameToFilename(
 		PackageName, FPackageName::GetAssetPackageExtension());
 
-	if (!PlatformFile.FileExists(*FilePath))
+	if (PlatformFile.FileExists(*FilePath))
 	{
-		CreateSolidColorMaterial();
+		// Validate that the existing material has its expressions properly wired.
+		// An earlier version of the creation code used PreEditChange(nullptr) which
+		// could leave the material with broken shader data.
+		UMaterial* Existing = LoadObject<UMaterial>(nullptr,
+			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		if (Existing)
+		{
+			UMaterialEditorOnlyData* EditorData = Existing->GetEditorOnlyData();
+			if (EditorData && EditorData->BaseColor.Expression
+				&& EditorData->EmissiveColor.Expression)
+			{
+				return; // Material exists and is valid
+			}
+			// Material is broken – move the old object out of the way so we
+			// can recreate it with the same name.
+			Existing->Rename(nullptr, GetTransientPackage(),
+				REN_DontCreateRedirectors | REN_NonTransactional);
+		}
+		PlatformFile.DeleteFile(*FilePath);
 	}
+
+	CreateSolidColorMaterial();
 }
 
 void FAsteroidSurvivorEditorModule::CreateSolidColorMaterial()
@@ -177,8 +213,9 @@ void FAsteroidSurvivorEditorModule::CreateSolidColorMaterial()
 	Material->BlendMode = BLEND_Opaque;
 	Material->SetShadingModel(MSM_DefaultLit);
 
-	// Trigger material compilation
-	Material->PreEditChange(nullptr);
+	// Compile the material's shaders.  Do NOT call PreEditChange(nullptr) on
+	// a freshly created material – that can corrupt the material's internal
+	// state before PostEditChange has a chance to compile it properly.
 	Material->PostEditChange();
 
 	// Save to disk

@@ -3,11 +3,13 @@
 #pragma once
 
 #include "Modules/ModuleInterface.h"
+#include "Delegates/IDelegateInstance.h"
 
 /**
- * Editor module that auto-generates default level maps when the project is
- * first opened in the Unreal Editor.  This ensures the game is playable out
- * of the box without requiring users to create maps manually.
+ * Editor module that auto-generates default level maps and material assets
+ * when the project is first opened in the Unreal Editor.  This ensures the
+ * game is playable out of the box without requiring users to create assets
+ * manually.
  */
 class FAsteroidSurvivorEditorModule : public IModuleInterface
 {
@@ -25,6 +27,13 @@ private:
 	 */
 	void CreateMinimalMap(const FString& PackageName);
 
+	/**
+	 * Deferred callback – runs after the engine is fully initialised so that
+	 * material creation does not trigger "UpdateValidators before
+	 * RegisterBlueprintValidators" warnings.
+	 */
+	void OnPostEngineInit();
+
 	/** Create shared material assets if they do not exist on disk. */
 	void EnsureDefaultMaterialsExist();
 
@@ -35,4 +44,7 @@ private:
 	 * pure, reflection-free colour.
 	 */
 	void CreateSolidColorMaterial();
+
+	/** Handle for the OnPostEngineInit delegate so it can be unregistered. */
+	FDelegateHandle PostEngineInitHandle;
 };
