@@ -40,6 +40,8 @@ Survive increasingly difficult waves of asteroids – shoot them down before the
 ```
 AsteroidSurvivor/
 ├── AsteroidSurvivor.uproject          # Unreal project descriptor (Engine 5.7)
+├── PackageGame.bat                    # One-click packaging script (Windows)
+├── PackageGame.sh                     # One-click packaging script (macOS/Linux)
 ├── Config/
 │   ├── DefaultEngine.ini
 │   ├── DefaultGame.ini
@@ -140,6 +142,60 @@ Create Blueprint subclasses for each actor to assign meshes, materials and audio
 | `AAsteroidSurvivorAsteroidSpawner` | `BP_AsteroidSpawner` |
 | `AAsteroidSurvivorGameMode` | `BP_AsteroidSurvivorGameMode` |
 | `AAsteroidSurvivorHUD` | `BP_HUD` |
+
+---
+
+## Packaging the Game (Creating a Standalone Executable)
+
+To share the game with someone who does **not** have Unreal Engine installed, you need to _package_ the project. This produces a standalone folder containing an `.exe` (Windows) or `.app` (macOS) that anyone can run.
+
+### Option A — One-click packaging scripts
+
+This repository includes helper scripts that automate the packaging process.
+
+**Windows:**
+
+```bat
+REM Auto-detect Unreal Engine installation:
+PackageGame.bat
+
+REM Or specify the engine path explicitly:
+PackageGame.bat "C:\Program Files\Epic Games\UE_5.7"
+```
+
+**macOS / Linux:**
+
+```bash
+# Auto-detect Unreal Engine installation:
+./PackageGame.sh
+
+# Or specify the engine path explicitly:
+./PackageGame.sh "/Users/Shared/Epic Games/UE_5.7"
+```
+
+The packaged game will be placed in:
+- **Windows:** `Build\WindowsPackage\`
+- **macOS:** `Build/MacPackage/`
+- **Linux:** `Build/LinuxPackage/`
+
+> **Tip:** If the script cannot find your engine, set the `UE_ROOT` environment variable to your Unreal Engine install directory before running.
+
+### Option B — Package from the Unreal Editor
+
+1. Open `AsteroidSurvivor.uproject` in Unreal Editor.
+2. Go to **Platforms → Windows → Package Project** (or **File → Package Project → Windows**).
+3. Choose an output folder.
+4. Wait for the cook-and-build process to complete.
+
+### Sharing with a Friend
+
+After packaging, the output folder contains everything needed to play. To distribute:
+
+1. **Zip** the entire output folder (e.g., `Build/WindowsPackage/`).
+2. **Send** the `.zip` file to your friend (via a file-sharing service, USB drive, etc.).
+3. Your friend **extracts** the zip and **runs `AsteroidSurvivor.exe`** (Windows) or opens the `.app` bundle (macOS).
+
+> **Note:** Your friend does **not** need Unreal Engine installed. The packaged build is fully standalone. On Windows, they may need to install the [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) if they don't already have it.
 
 ---
 
