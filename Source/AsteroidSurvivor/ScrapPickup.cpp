@@ -45,9 +45,9 @@ AScrapPickup::AScrapPickup()
 	// Orange / gold glow
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(22000.0f);
+	GlowLight->SetIntensity(44000.0f);
 	GlowLight->SetLightColor(FLinearColor(1.0f, 0.7f, 0.1f));
-	GlowLight->SetAttenuationRadius(350.0f);
+	GlowLight->SetAttenuationRadius(500.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -69,7 +69,7 @@ void AScrapPickup::BeginPlay()
 		if (DynMat)
 		{
 			const FLinearColor ScrapBaseColor(1.0f, 0.7f, 0.1f, 1.0f);
-			const FLinearColor ScrapEmissive = ScrapBaseColor * 3.0f;
+			const FLinearColor ScrapEmissive = ScrapBaseColor * 6.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ScrapBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ScrapBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ScrapEmissive);
@@ -155,7 +155,7 @@ void AScrapPickup::Tick(float DeltaTime)
 	const float PulseFactor = 0.7f + 0.3f * FMath::Sin(PulsePhase);
 	if (GlowLight)
 	{
-		GlowLight->SetIntensity(22000.0f * PulseFactor);
+		GlowLight->SetIntensity(44000.0f * PulseFactor);
 	}
 }
 

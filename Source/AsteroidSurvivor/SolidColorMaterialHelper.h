@@ -27,7 +27,18 @@ public:
 	 */
 	static UMaterial* GetOrCreateMaterial();
 
+	/**
+	 * Return a translucent variant of M_SolidColor with an "Opacity"
+	 * scalar parameter.  Used for semi-transparent effects like shields.
+	 * Returns nullptr in non-editor builds when the asset does not exist
+	 * on disk.
+	 */
+	static UMaterial* GetOrCreateTranslucentMaterial();
+
 private:
 	/** Weak cache so we only create the material once per session. */
 	static TWeakObjectPtr<UMaterial> CachedMaterial;
+
+	/** Weak cache for the translucent variant. */
+	static TWeakObjectPtr<UMaterial> CachedTranslucentMaterial;
 };

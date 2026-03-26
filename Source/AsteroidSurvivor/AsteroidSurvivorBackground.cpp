@@ -213,7 +213,7 @@ void AAsteroidSurvivorBackground::ApplyLayerColor(UInstancedStaticMeshComponent*
 	UMaterialInstanceDynamic* DynMat = ISM->CreateDynamicMaterialInstance(0);
 	if (DynMat)
 	{
-		const FLinearColor EmissiveColor = Color * 2.0f;
+		const FLinearColor EmissiveColor = Color * 4.0f;
 		DynMat->SetVectorParameterValue(FName(TEXT("Color")), Color);
 		DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), Color);
 		DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveColor);

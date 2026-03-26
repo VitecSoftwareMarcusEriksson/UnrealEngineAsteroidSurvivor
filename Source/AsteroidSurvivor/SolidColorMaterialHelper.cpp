@@ -5,10 +5,12 @@
 
 #if WITH_EDITORONLY_DATA
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
 #endif
 
 TWeakObjectPtr<UMaterial> FSolidColorMaterialHelper::CachedMaterial;
+TWeakObjectPtr<UMaterial> FSolidColorMaterialHelper::CachedTranslucentMaterial;
 
 /**
  * Check whether a material has the "Color" and "EmissiveColor" vector
@@ -139,6 +141,95 @@ UMaterial* FSolidColorMaterialHelper::GetOrCreateMaterial()
 		HasExpectedParameters(Mat) ? TEXT("yes") : TEXT("NO"));
 
 	CachedMaterial = Mat;
+	return Mat;
+#else
+	return nullptr;
+#endif
+}
+
+UMaterial* FSolidColorMaterialHelper::GetOrCreateTranslucentMaterial()
+{
+	// Return cached translucent material if still valid.
+	if (CachedTranslucentMaterial.IsValid())
+	{
+		return CachedTranslucentMaterial.Get();
+	}
+
+#if WITH_EDITORONLY_DATA
+	// Create a translucent variant of the solid-colour material with an
+	// "Opacity" scalar parameter for semi-transparent effects (e.g. shields).
+	UMaterial* Mat = NewObject<UMaterial>(
+		GetTransientPackage(), TEXT("M_SolidColor_Translucent_Runtime"), RF_Transient);
+	if (!Mat)
+	{
+		return nullptr;
+	}
+
+	// "Color" vector parameter → Base Color
+	UMaterialExpressionVectorParameter* ColorParam =
+		NewObject<UMaterialExpressionVectorParameter>(Mat);
+	ColorParam->ParameterName = TEXT("Color");
+	ColorParam->DefaultValue = FLinearColor::White;
+	ColorParam->ExpressionGUID = FGuid::NewGuid();
+
+	// "EmissiveColor" vector parameter → Emissive Color
+	UMaterialExpressionVectorParameter* EmissiveParam =
+		NewObject<UMaterialExpressionVectorParameter>(Mat);
+	EmissiveParam->ParameterName = TEXT("EmissiveColor");
+	EmissiveParam->DefaultValue = FLinearColor::Black;
+	EmissiveParam->ExpressionGUID = FGuid::NewGuid();
+
+	// "Opacity" scalar parameter → Opacity pin
+	UMaterialExpressionScalarParameter* OpacityParam =
+		NewObject<UMaterialExpressionScalarParameter>(Mat);
+	OpacityParam->ParameterName = TEXT("Opacity");
+	OpacityParam->DefaultValue = 0.3f;
+	OpacityParam->ExpressionGUID = FGuid::NewGuid();
+
+	// Metallic constant
+	UMaterialExpressionConstant* MetallicConst =
+		NewObject<UMaterialExpressionConstant>(Mat);
+	MetallicConst->R = 0.15f;
+
+	// Roughness constant
+	UMaterialExpressionConstant* RoughnessConst =
+		NewObject<UMaterialExpressionConstant>(Mat);
+	RoughnessConst->R = 0.35f;
+
+	// Register expressions
+	Mat->GetExpressionCollection().AddExpression(ColorParam);
+	Mat->GetExpressionCollection().AddExpression(EmissiveParam);
+	Mat->GetExpressionCollection().AddExpression(OpacityParam);
+	Mat->GetExpressionCollection().AddExpression(MetallicConst);
+	Mat->GetExpressionCollection().AddExpression(RoughnessConst);
+
+	// Wire expressions to material output pins
+	UMaterialEditorOnlyData* EditorData = Mat->GetEditorOnlyData();
+	if (EditorData)
+	{
+		EditorData->BaseColor.Expression     = ColorParam;
+		EditorData->BaseColor.OutputIndex     = 0;
+		EditorData->EmissiveColor.Expression = EmissiveParam;
+		EditorData->EmissiveColor.OutputIndex = 0;
+		EditorData->Opacity.Expression       = OpacityParam;
+		EditorData->Opacity.OutputIndex       = 0;
+		EditorData->Metallic.Expression      = MetallicConst;
+		EditorData->Metallic.OutputIndex      = 0;
+		EditorData->Roughness.Expression     = RoughnessConst;
+		EditorData->Roughness.OutputIndex     = 0;
+	}
+
+	// Translucent blend mode for semi-transparent rendering
+	Mat->BlendMode = BLEND_Translucent;
+	Mat->SetShadingModel(MSM_DefaultLit);
+
+	// Compile shaders
+	Mat->PostEditChange();
+
+	UE_LOG(LogTemp, Log,
+		TEXT("AsteroidSurvivor: Created runtime translucent M_SolidColor material"));
+
+	CachedTranslucentMaterial = Mat;
 	return Mat;
 #else
 	return nullptr;

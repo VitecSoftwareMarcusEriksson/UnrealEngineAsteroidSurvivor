@@ -77,13 +77,13 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 		if (DynMat)
 		{
 			FLinearColor AsteroidBaseColor(0.6f, 0.35f, 0.15f, 1.0f);
-			FLinearColor EmissiveColor = AsteroidBaseColor * 0.3f;
+			FLinearColor EmissiveColor = AsteroidBaseColor * 1.0f;
 
 			if (bContainsThorium)
 			{
 				// Add a subtle cyan/teal tint to indicate Thorium content
 				AsteroidBaseColor = FLinearColor(0.5f, 0.45f, 0.25f, 1.0f);
-				EmissiveColor = FLinearColor(0.15f, 0.3f, 0.4f, 1.0f);
+				EmissiveColor = FLinearColor(0.15f, 0.3f, 0.4f, 1.0f) * 3.0f;
 			}
 
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), AsteroidBaseColor);

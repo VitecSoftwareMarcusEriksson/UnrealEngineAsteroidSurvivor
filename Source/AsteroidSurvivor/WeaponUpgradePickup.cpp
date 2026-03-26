@@ -45,9 +45,9 @@ AWeaponUpgradePickup::AWeaponUpgradePickup()
 	// Bright white-blue glow
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
-	GlowLight->SetIntensity(40000.0f);
+	GlowLight->SetIntensity(80000.0f);
 	GlowLight->SetLightColor(FLinearColor(0.5f, 0.8f, 1.0f));
-	GlowLight->SetAttenuationRadius(500.0f);
+	GlowLight->SetAttenuationRadius(700.0f);
 	GlowLight->SetCastShadows(false);
 }
 
@@ -69,7 +69,7 @@ void AWeaponUpgradePickup::BeginPlay()
 		if (DynMat)
 		{
 			const FLinearColor WeaponBaseColor(0.3f, 0.6f, 1.0f, 1.0f);
-			const FLinearColor WeaponEmissive = WeaponBaseColor * 3.0f;
+			const FLinearColor WeaponEmissive = WeaponBaseColor * 6.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), WeaponBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), WeaponBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), WeaponEmissive);
@@ -185,7 +185,7 @@ void AWeaponUpgradePickup::Tick(float DeltaTime)
 	if (GlowLight)
 	{
 		const float PulseFactor = 0.7f + 0.3f * FMath::Sin(LifeTimer * 5.0f);
-		GlowLight->SetIntensity(40000.0f * PulseFactor);
+		GlowLight->SetIntensity(80000.0f * PulseFactor);
 	}
 }
 
