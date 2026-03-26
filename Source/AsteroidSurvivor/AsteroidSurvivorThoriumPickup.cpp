@@ -85,7 +85,7 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 		if (GlowMat)
 		{
 			const FLinearColor GlowBaseColor(0.1f, 0.6f, 0.8f, 0.4f);
-			const FLinearColor GlowEmissive = FLinearColor(0.1f, 0.6f, 0.8f, 1.0f) * 1.5f;
+			const FLinearColor GlowEmissive = FLinearColor(GlowBaseColor.R, GlowBaseColor.G, GlowBaseColor.B, 1.0f) * 1.5f;
 			GlowMat->SetVectorParameterValue(FName(TEXT("Color")), GlowBaseColor);
 			GlowMat->SetVectorParameterValue(FName(TEXT("BaseColor")), GlowBaseColor);
 			GlowMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), GlowEmissive);
