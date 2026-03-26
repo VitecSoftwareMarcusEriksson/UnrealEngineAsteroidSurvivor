@@ -60,10 +60,10 @@ void AAsteroidSurvivorBackground::BeginPlay()
 	CreateSpaceDustLayer(SpaceDustISM, 200);
 
 	// Color the star layers with subtle tints for visual variety
-	ApplyLayerColor(FarStarsISM, FLinearColor(1.5f, 1.5f, 2.5f, 1.0f));
-	ApplyLayerColor(MidStarsISM, FLinearColor(2.0f, 2.0f, 2.5f, 1.0f));
-	ApplyLayerColor(NearStarsISM, FLinearColor(3.0f, 2.8f, 2.5f, 1.0f));
-	ApplyLayerColor(SpaceDustISM, FLinearColor(1.0f, 1.5f, 3.0f, 1.0f));
+	ApplyLayerColor(FarStarsISM, FLinearColor(0.6f, 0.6f, 1.0f, 1.0f));
+	ApplyLayerColor(MidStarsISM, FLinearColor(0.8f, 0.8f, 1.0f, 1.0f));
+	ApplyLayerColor(NearStarsISM, FLinearColor(1.0f, 0.9f, 0.8f, 1.0f));
+	ApplyLayerColor(SpaceDustISM, FLinearColor(0.4f, 0.6f, 1.0f, 1.0f));
 }
 
 void AAsteroidSurvivorBackground::Tick(float DeltaTime)
@@ -204,10 +204,11 @@ void AAsteroidSurvivorBackground::ApplyLayerColor(UInstancedStaticMeshComponent*
 	UMaterialInstanceDynamic* DynMat = ISM->CreateDynamicMaterialInstance(0);
 	if (DynMat)
 	{
+		const FLinearColor EmissiveColor = Color * 2.0f;
 		DynMat->SetVectorParameterValue(FName(TEXT("Color")), Color);
 		DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), Color);
-		DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), Color);
-		DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), Color);
+		DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveColor);
+		DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveColor);
 	}
 }
 

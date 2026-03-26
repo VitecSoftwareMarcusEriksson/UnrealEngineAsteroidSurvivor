@@ -59,11 +59,12 @@ void AWeaponUpgradePickup::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = PickupMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor WeaponColor(6.0f, 12.0f, 20.0f, 1.0f);
-			DynMat->SetVectorParameterValue(FName(TEXT("Color")), WeaponColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), WeaponColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), WeaponColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), WeaponColor);
+			const FLinearColor WeaponBaseColor(0.3f, 0.6f, 1.0f, 1.0f);
+			const FLinearColor WeaponEmissive = WeaponBaseColor * 3.0f;
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), WeaponBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), WeaponBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), WeaponEmissive);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), WeaponEmissive);
 		}
 	}
 }

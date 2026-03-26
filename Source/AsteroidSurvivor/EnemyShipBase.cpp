@@ -75,10 +75,11 @@ void AEnemyShipBase::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = ShipMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
+			const FLinearColor EmissiveCol = ShipColor * 2.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ShipColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShipColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveCol);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveCol);
 		}
 	}
 

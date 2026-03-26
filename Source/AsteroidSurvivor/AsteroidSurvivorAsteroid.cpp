@@ -66,18 +66,18 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = AsteroidMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			FLinearColor AsteroidColor(1.5f, 0.8f, 0.3f, 1.0f);
-			FLinearColor EmissiveColor = AsteroidColor * 0.3f;
+			FLinearColor AsteroidBaseColor(0.6f, 0.35f, 0.15f, 1.0f);
+			FLinearColor EmissiveColor = AsteroidBaseColor * 0.3f;
 
 			if (bContainsThorium)
 			{
 				// Add a subtle cyan/teal tint to indicate Thorium content
-				AsteroidColor = FLinearColor(1.2f, 1.0f, 0.5f, 1.0f);
-				EmissiveColor = FLinearColor(0.4f, 0.8f, 1.0f, 1.0f) * 0.3f;
+				AsteroidBaseColor = FLinearColor(0.5f, 0.45f, 0.25f, 1.0f);
+				EmissiveColor = FLinearColor(0.15f, 0.3f, 0.4f, 1.0f);
 			}
 
-			DynMat->SetVectorParameterValue(FName(TEXT("Color")), AsteroidColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), AsteroidColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), AsteroidBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), AsteroidBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveColor);
 		}

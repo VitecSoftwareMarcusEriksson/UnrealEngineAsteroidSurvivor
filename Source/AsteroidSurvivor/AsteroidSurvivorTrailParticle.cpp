@@ -39,12 +39,13 @@ void AAsteroidSurvivorTrailParticle::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = ParticleMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			// Bright orange/fire emissive color
-			const FLinearColor TrailColor(4.0f, 1.5f, 0.2f, 1.0f);
-			DynMat->SetVectorParameterValue(FName(TEXT("Color")), TrailColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), TrailColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), TrailColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), TrailColor);
+			// Bright orange/fire color for engine trail
+			const FLinearColor TrailBaseColor(1.0f, 0.4f, 0.05f, 1.0f);
+			const FLinearColor TrailEmissive = TrailBaseColor * 3.0f;
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), TrailBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), TrailBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), TrailEmissive);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), TrailEmissive);
 		}
 	}
 }

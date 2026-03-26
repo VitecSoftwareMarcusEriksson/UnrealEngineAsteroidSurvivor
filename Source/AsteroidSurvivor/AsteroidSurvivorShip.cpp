@@ -121,11 +121,12 @@ void AAsteroidSurvivorShip::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = ShipMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor ShipColor(1.0f, 8.0f, 12.0f, 1.0f);
-			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ShipColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShipColor);
+			const FLinearColor ShipBaseColor(0.1f, 0.7f, 1.0f, 1.0f);
+			const FLinearColor ShipEmissive = ShipBaseColor * 2.0f;
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ShipBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShipBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShipEmissive);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShipEmissive);
 		}
 	}
 
@@ -135,11 +136,12 @@ void AAsteroidSurvivorShip::BeginPlay()
 		UMaterialInstanceDynamic* ShieldMat = ShieldMesh->CreateDynamicMaterialInstance(0);
 		if (ShieldMat)
 		{
-			const FLinearColor ShieldColor(0.3f, 1.5f, 3.0f, 0.25f);
-			ShieldMat->SetVectorParameterValue(FName(TEXT("Color")), ShieldColor);
-			ShieldMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShieldColor);
-			ShieldMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShieldColor * 0.5f);
-			ShieldMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShieldColor * 0.5f);
+			const FLinearColor ShieldBaseColor(0.2f, 0.6f, 1.0f, 0.25f);
+			const FLinearColor ShieldEmissive(0.1f, 0.3f, 0.5f, 0.25f);
+			ShieldMat->SetVectorParameterValue(FName(TEXT("Color")), ShieldBaseColor);
+			ShieldMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShieldBaseColor);
+			ShieldMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShieldEmissive);
+			ShieldMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShieldEmissive);
 		}
 	}
 
@@ -594,8 +596,8 @@ void AAsteroidSurvivorShip::AddOrUpgradeWeapon(EWeaponType Type)
 
 	if (int32* Level = WeaponArsenal.Find(Type))
 	{
-		// Stack the upgrade – max level 3
-		*Level = FMath::Min(*Level + 1, 3);
+		// Stack the upgrade – no cap, all weapons are stackable
+		*Level += 1;
 	}
 	else
 	{
@@ -612,8 +614,8 @@ void AAsteroidSurvivorShip::AddOrUpgradeWeapon(EWeaponType Type)
 
 void AAsteroidSurvivorShip::OnScrapCollected(int32 TotalScrap)
 {
-	// Every 25 scrap collected, enhance the base blaster
-	const int32 Threshold = 25;
+	// Every 5 scrap collected (doubling threshold), enhance the base blaster
+	const int32 Threshold = 5;
 	const int32 NewLevel = 1 + TotalScrap / Threshold;
 	if (NewLevel > BlasterLevel)
 	{
@@ -634,7 +636,7 @@ void AAsteroidSurvivorShip::FireExtraWeapons()
 	if (BlasterLevel >= 2)
 	{
 		const float BlasterSpreadAngle = 8.0f; // Degrees between extra blaster shots
-		const int32 ExtraShots = FMath::Min(BlasterLevel - 1, 3); // up to 3 extra
+		const int32 ExtraShots = BlasterLevel - 1; // scales with level, no cap
 		for (int32 i = 0; i < ExtraShots; ++i)
 		{
 			float AngleOffset = (i + 1) * BlasterSpreadAngle * ((i % 2 == 0) ? 1.0f : -1.0f);
@@ -677,11 +679,11 @@ void AAsteroidSurvivorShip::FireExtraWeapons()
 void AAsteroidSurvivorShip::FireSpreadShot(int32 Level)
 {
 	// Spread shot fires additional projectiles in a fan pattern
-	// Level 1: 2 extra (±15°), Level 2: 4 extra (±10°, ±20°), Level 3: 6 extra (±8°, ±16°, ±24°)
+	// Level 1: 2 extra (±15°), Level 2: 4 extra (±10°, ±20°), etc. – scales with level
 	const int32 PairsCount = Level;
 	const float SpreadBaseAngle = 15.0f;       // Starting angle at level 1
 	const float SpreadLevelDecrement = 2.5f;   // Tightens spread per level
-	const float AngleStep = SpreadBaseAngle - (Level - 1) * SpreadLevelDecrement;
+	const float AngleStep = FMath::Max(SpreadBaseAngle - (Level - 1) * SpreadLevelDecrement, 3.0f);
 
 	for (int32 i = 1; i <= PairsCount; ++i)
 	{
@@ -706,20 +708,26 @@ void AAsteroidSurvivorShip::FireSpreadShot(int32 Level)
 
 void AAsteroidSurvivorShip::FireRearTurret(int32 Level)
 {
-	// Rear turret fires projectile(s) backward
-	// Level 1: 1 shot, Level 2: 2 shots (±10°), Level 3: 3 shots (0°, ±15°)
+	// Rear turret fires projectile(s) backward – scales with level, no cap
 	TArray<float> Angles;
-	if (Level >= 3)
+	if (Level <= 1)
 	{
-		Angles = {0.0f, -15.0f, 15.0f};
+		Angles = {0.0f};
 	}
-	else if (Level >= 2)
+	else if (Level == 2)
 	{
 		Angles = {-10.0f, 10.0f};
 	}
 	else
 	{
-		Angles = {0.0f};
+		// Level 3+: centre shot + symmetric pairs at ±15° spacing
+		Angles.Add(0.0f);
+		const int32 Pairs = (Level - 1) / 2 + 1; // 1 pair at L3, 2 at L5, etc.
+		for (int32 i = 1; i <= Pairs; ++i)
+		{
+			Angles.Add(-15.0f * i);
+			Angles.Add(15.0f * i);
+		}
 	}
 
 	for (float Angle : Angles)
@@ -743,11 +751,11 @@ void AAsteroidSurvivorShip::FireRearTurret(int32 Level)
 void AAsteroidSurvivorShip::FireHomingMissile(int32 Level)
 {
 	// Homing missile: fires toward the nearest enemy within a search radius.
-	// Level determines the number of missiles (1 per level, max 3).
+	// Level determines the number of missiles (scales with level, no cap).
 	// Note: actual homing behaviour is simulated by aiming at the target's position.
 	// A true homing projectile would need a custom subclass; here we aim precisely.
 
-	const int32 MissileCount = FMath::Min(Level, 3);
+	const int32 MissileCount = Level; // scales with level, no cap
 	const float SearchRadius = 2000.0f;
 
 	// Find nearest enemies

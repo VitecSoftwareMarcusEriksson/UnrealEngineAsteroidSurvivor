@@ -62,15 +62,16 @@ void AAsteroidSurvivorProjectile::BeginPlay()
 		if (DynMat)
 		{
 			// Bright neon green for player projectiles – clearly distinct from red enemy shots.
-			const FLinearColor BrightGreen(0.5f, 16.0f, 2.0f, 1.0f);
+			const FLinearColor BaseGreen(0.2f, 1.0f, 0.1f, 1.0f);
+			const FLinearColor EmissiveGreen = BaseGreen * 3.0f;
 
 			// BasicShapeMaterial uses "Color"
-			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BrightGreen);
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseGreen);
 			// Standard PBR materials use "BaseColor"
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BrightGreen);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseGreen);
 			// Emissive parameters (various naming conventions)
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), BrightGreen);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), BrightGreen);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveGreen);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveGreen);
 		}
 	}
 }

@@ -59,11 +59,12 @@ void AScrapPickup::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = PickupMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor ScrapColor(16.0f, 10.0f, 2.0f, 1.0f);
-			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ScrapColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ScrapColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ScrapColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ScrapColor);
+			const FLinearColor ScrapBaseColor(1.0f, 0.7f, 0.1f, 1.0f);
+			const FLinearColor ScrapEmissive = ScrapBaseColor * 3.0f;
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ScrapBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ScrapBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ScrapEmissive);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ScrapEmissive);
 		}
 	}
 }

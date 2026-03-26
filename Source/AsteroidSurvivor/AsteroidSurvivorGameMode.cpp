@@ -108,8 +108,8 @@ void AAsteroidSurvivorGameMode::AddScrap(int32 Amount)
 	{
 		CurrentScrap -= ScrapForNextWeaponLevel;
 		CurrentWeaponLevel++;
-		// Scale the next threshold: +10 per level
-		ScrapForNextWeaponLevel = 25 + CurrentWeaponLevel * 10;
+		// Double the threshold each time
+		ScrapForNextWeaponLevel *= 2;
 		PresentWeaponUpgradeOptions();
 	}
 }
