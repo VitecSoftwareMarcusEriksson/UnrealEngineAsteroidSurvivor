@@ -8,7 +8,9 @@ public class AsteroidSurvivorTarget : TargetRules
 	public AsteroidSurvivorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
-		DefaultBuildSettings = BuildSettingsVersion.V3;
+		DefaultBuildSettings = BuildSettingsVersion.V6;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
+		CppStandard = CppStandardVersion.Cpp20;
 		ExtraModuleNames.Add("AsteroidSurvivor");
 	}
 }

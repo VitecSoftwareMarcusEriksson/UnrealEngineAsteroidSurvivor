@@ -442,12 +442,10 @@ void AAsteroidSurvivorGameMode::TriggerGameOver()
 {
 	bGameOver = true;
 
-	// Disable player input
-	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
-	if (PC)
-	{
-		PC->DisableInput(PC);
-	}
+	// The player ship is already destroyed at this point so gameplay input
+	// (movement, shooting) naturally stops.  We intentionally do NOT call
+	// DisableInput here because the PlayerController still needs to receive
+	// the R-key press to restart the game.
 }
 
 void AAsteroidSurvivorGameMode::EnsureLightingExists()

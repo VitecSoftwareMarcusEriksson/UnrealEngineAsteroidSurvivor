@@ -20,4 +20,9 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
+
+private:
+	/** Restarts the current level when the game is over. */
+	void HandleRestart();
 };
