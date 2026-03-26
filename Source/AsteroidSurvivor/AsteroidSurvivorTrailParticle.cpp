@@ -23,14 +23,6 @@ AAsteroidSurvivorTrailParticle::AAsteroidSurvivorTrailParticle()
 	}
 	ParticleMesh->SetRelativeScale3D(FVector(InitialScale));
 
-	// Override with M_SolidColor for reliable per-instance colour
-	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
-	if (SolidColorMat.Succeeded())
-	{
-		ParticleMesh->SetMaterial(0, SolidColorMat.Object);
-	}
-
 	TrailLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("TrailLight"));
 	TrailLight->SetupAttachment(ParticleMesh);
 	TrailLight->SetIntensity(InitialLightIntensity);
@@ -45,6 +37,14 @@ void AAsteroidSurvivorTrailParticle::BeginPlay()
 
 	if (ParticleMesh)
 	{
+		// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
+		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
+			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		if (SolidColorMat)
+		{
+			ParticleMesh->SetMaterial(0, SolidColorMat);
+		}
+
 		UMaterialInstanceDynamic* DynMat = ParticleMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{

@@ -61,14 +61,6 @@ AAsteroidSurvivorShip::AAsteroidSurvivorShip()
 	ShipMesh->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	ShipMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.7f));
 
-	// Override with M_SolidColor for reliable per-instance colour
-	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
-	if (SolidColorMat.Succeeded())
-	{
-		ShipMesh->SetMaterial(0, SolidColorMat.Object);
-	}
-
 	// Shield visual mesh (translucent sphere around the ship)
 	ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShieldMesh"));
 	ShieldMesh->SetupAttachment(CollisionSphere);
@@ -125,8 +117,17 @@ void AAsteroidSurvivorShip::BeginPlay()
 
 	// Apply a bright metallic cyan ship material so the player stands out.
 	// Use HDR emissive values and multiple parameter names for material compatibility.
+	// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
+	UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+
 	if (ShipMesh)
 	{
+		if (SolidColorMat)
+		{
+			ShipMesh->SetMaterial(0, SolidColorMat);
+		}
+
 		UMaterialInstanceDynamic* DynMat = ShipMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
@@ -142,6 +143,11 @@ void AAsteroidSurvivorShip::BeginPlay()
 	// Shield material – translucent cyan glow
 	if (ShieldMesh)
 	{
+		if (SolidColorMat)
+		{
+			ShieldMesh->SetMaterial(0, SolidColorMat);
+		}
+
 		UMaterialInstanceDynamic* ShieldMat = ShieldMesh->CreateDynamicMaterialInstance(0);
 		if (ShieldMat)
 		{

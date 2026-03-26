@@ -41,14 +41,6 @@ AWeaponUpgradePickup::AWeaponUpgradePickup()
 	}
 	PickupMesh->SetRelativeScale3D(FVector(0.2f, 0.2f, 0.1f));
 
-	// Override with M_SolidColor for reliable per-instance colour
-	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
-	if (SolidColorMat.Succeeded())
-	{
-		PickupMesh->SetMaterial(0, SolidColorMat.Object);
-	}
-
 	// Bright white-blue glow
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
@@ -65,6 +57,14 @@ void AWeaponUpgradePickup::BeginPlay()
 	// Bright white / blue emissive material
 	if (PickupMesh)
 	{
+		// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
+		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
+			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		if (SolidColorMat)
+		{
+			PickupMesh->SetMaterial(0, SolidColorMat);
+		}
+
 		UMaterialInstanceDynamic* DynMat = PickupMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{

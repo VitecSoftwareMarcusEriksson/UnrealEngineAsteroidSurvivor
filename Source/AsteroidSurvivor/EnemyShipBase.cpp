@@ -46,14 +46,6 @@ AEnemyShipBase::AEnemyShipBase()
 	}
 	ShipMesh->SetRelativeScale3D(FVector(MeshScale));
 
-	// Override with M_SolidColor for reliable per-instance colour
-	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
-	if (SolidColorMat.Succeeded())
-	{
-		ShipMesh->SetMaterial(0, SolidColorMat.Object);
-	}
-
 	// Glow light for visual flair
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(RootComponent);
@@ -80,6 +72,14 @@ void AEnemyShipBase::BeginPlay()
 	if (ShipMesh)
 	{
 		ShipMesh->SetRelativeScale3D(FVector(MeshScale));
+
+		// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
+		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
+			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		if (SolidColorMat)
+		{
+			ShipMesh->SetMaterial(0, SolidColorMat);
+		}
 
 		UMaterialInstanceDynamic* DynMat = ShipMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)

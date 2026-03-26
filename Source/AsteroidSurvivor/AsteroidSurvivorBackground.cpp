@@ -19,10 +19,6 @@ AAsteroidSurvivorBackground::AAsteroidSurvivorBackground()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(
 		TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 
-	// Override with M_SolidColor for reliable per-instance colour
-	static ConstructorHelpers::FObjectFinder<UMaterial> SolidColorMat(
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
-
 	auto InitISM = [&](UInstancedStaticMeshComponent* ISM)
 	{
 		ISM->SetupAttachment(Root);
@@ -32,10 +28,6 @@ AAsteroidSurvivorBackground::AAsteroidSurvivorBackground()
 		if (SphereMesh.Succeeded())
 		{
 			ISM->SetStaticMesh(SphereMesh.Object);
-		}
-		if (SolidColorMat.Succeeded())
-		{
-			ISM->SetMaterial(0, SolidColorMat.Object);
 		}
 	};
 
@@ -208,6 +200,14 @@ void AAsteroidSurvivorBackground::ApplyLayerColor(UInstancedStaticMeshComponent*
 	if (!ISM)
 	{
 		return;
+	}
+
+	// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
+	UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
+		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	if (SolidColorMat)
+	{
+		ISM->SetMaterial(0, SolidColorMat);
 	}
 
 	UMaterialInstanceDynamic* DynMat = ISM->CreateDynamicMaterialInstance(0);
