@@ -60,13 +60,11 @@ void AWeaponUpgradePickup::BeginPlay()
 		if (DynMat)
 		{
 			const FLinearColor WeaponBaseColor(0.3f, 0.6f, 1.0f, 1.0f);
-			const FLinearColor WeaponEmissive = WeaponBaseColor * 2.0f;
+			const FLinearColor WeaponEmissive = WeaponBaseColor * 3.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), WeaponBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), WeaponBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), WeaponEmissive);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), WeaponEmissive);
-			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 }

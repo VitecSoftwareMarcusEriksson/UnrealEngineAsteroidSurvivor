@@ -9,7 +9,6 @@
 #include "WaveManager.h"
 #include "WeaponUpgradePickup.h"
 #include "Engine/DirectionalLight.h"
-#include "Engine/PostProcessVolume.h"
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
 
@@ -30,23 +29,6 @@ void AAsteroidSurvivorGameMode::BeginPlay()
 	// Spawn a directional light when the level has none, so the game is
 	// visible even in an empty map.
 	EnsureLightingExists();
-
-	// Spawn a Post Process Volume with fixed manual exposure to prevent
-	// auto-exposure from washing out the game's colors.
-	APostProcessVolume* PPV = GetWorld()->SpawnActor<APostProcessVolume>(
-		APostProcessVolume::StaticClass());
-	if (PPV)
-	{
-		PPV->bUnbound = true; // Affect the entire level
-		PPV->Settings.bOverride_AutoExposureMethod = true;
-		PPV->Settings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
-		PPV->Settings.bOverride_AutoExposureBias = true;
-		PPV->Settings.AutoExposureBias = 0.0f;
-		PPV->Settings.bOverride_AutoExposureMinBrightness = true;
-		PPV->Settings.AutoExposureMinBrightness = 1.0f;
-		PPV->Settings.bOverride_AutoExposureMaxBrightness = true;
-		PPV->Settings.AutoExposureMaxBrightness = 1.0f;
-	}
 
 	// Spawn parallax scrolling background
 	Background = GetWorld()->SpawnActor<AAsteroidSurvivorBackground>(

@@ -80,8 +80,6 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), AsteroidBaseColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveColor);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveColor);
-			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 }

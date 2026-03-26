@@ -64,13 +64,11 @@ void AEnemyProjectile::BeginPlay()
 		{
 			// Bright neon red-orange for enemy projectiles – clearly distinct from green player shots.
 			const FLinearColor BaseRed(1.0f, 0.15f, 0.05f, 1.0f);
-			const FLinearColor EmissiveRed = BaseRed * 2.0f;
+			const FLinearColor EmissiveRed = BaseRed * 3.0f;
 			DynMat->SetVectorParameterValue(FName(TEXT("Color")), BaseRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), EmissiveRed);
 			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), EmissiveRed);
-			DynMat->SetScalarParameterValue(FName(TEXT("Metallic")), 0.0f);
-			DynMat->SetScalarParameterValue(FName(TEXT("Roughness")), 1.0f);
 		}
 	}
 }
