@@ -5,6 +5,7 @@
 #include "AsteroidSurvivorGameMode.h"
 #include "AsteroidSurvivorThoriumPickup.h"
 #include "EnemyShipBase.h"
+#include "SolidColorMaterialHelper.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -64,11 +65,9 @@ void AAsteroidSurvivorAsteroid::BeginPlay()
 	// Thorium-bearing asteroids get a subtle cyan tint to hint at their contents.
 	if (AsteroidMesh)
 	{
-		// Load M_SolidColor at runtime – the material may not have been
-		// available during CDO construction (the editor module creates it
-		// after game-module CDOs are constructed).
-		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
-			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		// Use the shared material helper – it loads M_SolidColor from disk
+		// or creates an equivalent at runtime as a fallback.
+		UMaterial* SolidColorMat = FSolidColorMaterialHelper::GetOrCreateMaterial();
 		if (SolidColorMat)
 		{
 			AsteroidMesh->SetMaterial(0, SolidColorMat);

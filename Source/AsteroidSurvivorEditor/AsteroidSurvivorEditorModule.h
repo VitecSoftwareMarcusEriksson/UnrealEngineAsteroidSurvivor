@@ -40,8 +40,8 @@ private:
 	/**
 	 * Create M_SolidColor – a simple opaque material with a "Color" vector
 	 * parameter driving Base Color and an "EmissiveColor" parameter driving
-	 * Emissive Color.  Metallic is 0 and Roughness is 1 so objects display
-	 * pure, reflection-free colour.
+	 * Emissive Color.  Metallic is 0.15 and Roughness is 0.35 for specular
+	 * highlights that give objects a visible 3-D shape.
 	 */
 	void CreateSolidColorMaterial();
 

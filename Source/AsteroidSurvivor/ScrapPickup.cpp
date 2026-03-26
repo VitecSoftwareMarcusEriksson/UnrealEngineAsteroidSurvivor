@@ -3,6 +3,7 @@
 #include "ScrapPickup.h"
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorGameMode.h"
+#include "SolidColorMaterialHelper.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -57,9 +58,8 @@ void AScrapPickup::BeginPlay()
 	// Orange / gold emissive material
 	if (PickupMesh)
 	{
-		// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
-		UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
-			TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+		// Load the shared solid-colour material (with runtime fallback).
+		UMaterial* SolidColorMat = FSolidColorMaterialHelper::GetOrCreateMaterial();
 		if (SolidColorMat)
 		{
 			PickupMesh->SetMaterial(0, SolidColorMat);

@@ -3,6 +3,7 @@
 #include "AsteroidSurvivorThoriumPickup.h"
 #include "AsteroidSurvivorShip.h"
 #include "AsteroidSurvivorGameMode.h"
+#include "SolidColorMaterialHelper.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PointLightComponent.h"
@@ -65,9 +66,8 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 	Super::BeginPlay();
 
 	// Bright cyan / teal emissive material for the Thorium particle
-	// Load M_SolidColor at runtime – see AsteroidSurvivorAsteroid for details.
-	UMaterial* SolidColorMat = LoadObject<UMaterial>(nullptr,
-		TEXT("/Game/Materials/M_SolidColor.M_SolidColor"));
+	// Load the shared solid-colour material (with runtime fallback).
+	UMaterial* SolidColorMat = FSolidColorMaterialHelper::GetOrCreateMaterial();
 
 	if (PickupMesh)
 	{
