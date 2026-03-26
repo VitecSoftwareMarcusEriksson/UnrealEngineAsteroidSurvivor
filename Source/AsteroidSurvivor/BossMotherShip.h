@@ -29,6 +29,16 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	/**
+	 * Scale boss stats based on spawn number. Called by WaveManager before InitEnemy.
+	 * Each successive boss gets more HP, damage, volley count, etc.
+	 * @param SpawnNumber  How many bosses have been spawned so far (1 for first boss).
+	 */
+	void ApplyDifficultyScaling(int32 SpawnNumber);
+
+	/** Returns current move speed (may be modified by difficulty scaling). */
+	float GetMoveSpeed() const { return MoveSpeed; }
+
 protected:
 	virtual void UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* PlayerShip) override;
 
@@ -50,6 +60,23 @@ protected:
 	/** Spread angle for volley projectiles (degrees). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon")
 	float VolleySpread = 20.0f;
+
+	// ── Difficulty scaling parameters ───────────────────────────────────────
+	/** HP multiplier increase per boss spawn (e.g. 0.5 = +50% per spawn). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float HpScalePerSpawn = 0.5f;
+
+	/** Contact damage multiplier increase per boss spawn. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float DamageScalePerSpawn = 0.25f;
+
+	/** Fire interval reduction factor per spawn (multiplied each time). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float FireIntervalDecayRate = 0.9f;
+
+	/** Minimum fire interval in seconds (floor for scaling). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float MinFireInterval = 0.5f;
 
 private:
 	float FireTimer = 0.0f;

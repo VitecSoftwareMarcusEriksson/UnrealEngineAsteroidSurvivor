@@ -85,23 +85,47 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
 	float BossSpawnInterval = 60.0f;
 
-	/** Maximum number of enemy ships alive at once (excluding bosses). */
+	/** Base maximum number of enemy ships alive at once (excluding bosses). Scales up over time. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
-	int32 MaxEnemies = 25;
+	int32 BaseMaxEnemies = 25;
 
 	/** Distance from the player at which enemies spawn (cm). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
 	float SpawnRadius = 2500.0f;
+
+	/** Minimum number of zigzag enemies per group when they spawn. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
+	int32 MinZigzagGroupSize = 5;
+
+	/** Spacing between zigzag enemies in a line formation (cm). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
+	float ZigzagLineSpacing = 150.0f;
+
+	/** How many additional enemies the cap increases per 60 seconds of elapsed time. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
+	int32 EnemyCapIncreasePerMinute = 5;
+
+	/** Angular spread (degrees, ±) for clustered enemy wave spawning. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
+	float ClusterSpreadAngle = 20.0f;
+
+	/** Radius variation (cm, ±) applied to clustered spawn positions. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
+	float ClusterRadiusVariation = 200.0f;
 
 private:
 	float ElapsedTime = 0.0f;      // Global game timer
 	float WaveTimer = 0.0f;        // Countdown to next wave
 	float BossTimer = 0.0f;        // Countdown to next boss spawn
 	int32 CurrentWave = 0;         // Wave counter
+	int32 BossSpawnCount = 0;      // How many bosses have been spawned (for scaling)
 	bool bSpawningPaused = false;
 
 	UPROPERTY()
 	AEnemyShipBase* ActiveBoss = nullptr;
+
+	/** Returns the current max enemy cap, which scales up with elapsed time. */
+	int32 GetCurrentMaxEnemies() const;
 
 	/** Builds the wave composition based on the current difficulty level. */
 	FWaveComposition BuildWaveForCurrentDifficulty() const;
@@ -109,8 +133,14 @@ private:
 	/** Spawns a complete wave of enemies. */
 	void SpawnWave(const FWaveComposition& Composition);
 
-	/** Spawns a boss mother ship. */
+	/** Spawns a boss mother ship with difficulty scaling. */
 	void SpawnBoss();
+
+	/** Spawns zigzag enemies in a line formation perpendicular to the player direction. */
+	void SpawnZigzagFormation(int32 Count, int32& Budget);
+
+	/** Spawns a group of enemies of the given type in a clustered wave from one direction. */
+	void SpawnClusteredGroup(EEnemyShipType Type, int32 Count, int32& Budget);
 
 	/** Spawns a single enemy of the given type at a location outside the camera. */
 	void SpawnEnemyOfType(EEnemyShipType Type, const FVector& SpawnLocation, const FVector& DirectionToPlayer);
