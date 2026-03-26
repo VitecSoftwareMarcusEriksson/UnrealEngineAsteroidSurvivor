@@ -234,10 +234,10 @@ private:
 	void RegisterInputMappingContext();
 
 	// ── Weapon arsenal ──────────────────────────────────────────────────────
-	/** Map of weapon type → upgrade level (1 = base, 2 = enhanced, 3 = max). */
+	/** Map of weapon type → upgrade level (1 = base, 2+ = enhanced, stacks without cap). */
 	TMap<EWeaponType, int32> WeaponArsenal;
 
-	/** Base blaster enhancement level. Increases every 25 scrap collected. */
+	/** Base blaster enhancement level. Increases every 5 scrap collected. */
 	int32 BlasterLevel = 1;
 
 	/** The last scrap threshold that triggered a blaster upgrade. */

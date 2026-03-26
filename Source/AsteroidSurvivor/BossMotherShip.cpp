@@ -16,7 +16,7 @@ ABossMotherShip::ABossMotherShip()
 	ScoreValue = 500;
 	CollisionRadius = 100.0f;
 	MeshScale = 2.0f;
-	ShipColor = FLinearColor(16.0f, 0.4f, 8.0f, 1.0f); // Bright neon hot-pink / magenta
+	ShipColor = FLinearColor(1.0f, 0.1f, 0.6f, 1.0f); // Bright neon hot-pink / magenta
 	ScrapDropCount = 10;
 	ScrapPerPickup = 4;   // Largest enemy, most scrap per drop
 	WeaponDropChance = 0.50f; // 50% weapon drop chance

@@ -153,7 +153,7 @@ private:
 
 	// Scrap currency (collected from enemy ships)
 	int32 CurrentScrap = 0;
-	int32 ScrapForNextWeaponLevel = 25;
+	int32 ScrapForNextWeaponLevel = 5;
 	int32 CurrentWeaponLevel = 0;
 
 	// Upgrade selection

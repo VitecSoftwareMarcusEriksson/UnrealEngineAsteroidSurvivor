@@ -69,11 +69,12 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 		UMaterialInstanceDynamic* DynMat = PickupMesh->CreateDynamicMaterialInstance(0);
 		if (DynMat)
 		{
-			const FLinearColor ThoriumColor(2.0f, 16.0f, 20.0f, 1.0f);
-			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ThoriumColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ThoriumColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ThoriumColor);
-			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ThoriumColor);
+			const FLinearColor ThoriumBaseColor(0.1f, 0.8f, 1.0f, 1.0f);
+			const FLinearColor ThoriumEmissive = ThoriumBaseColor * 3.0f;
+			DynMat->SetVectorParameterValue(FName(TEXT("Color")), ThoriumBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ThoriumBaseColor);
+			DynMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ThoriumEmissive);
+			DynMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ThoriumEmissive);
 		}
 	}
 
@@ -83,11 +84,12 @@ void AAsteroidSurvivorThoriumPickup::BeginPlay()
 		UMaterialInstanceDynamic* GlowMat = OuterGlowMesh->CreateDynamicMaterialInstance(0);
 		if (GlowMat)
 		{
-			const FLinearColor GlowColor(0.5f, 6.0f, 8.0f, 0.4f);
-			GlowMat->SetVectorParameterValue(FName(TEXT("Color")), GlowColor);
-			GlowMat->SetVectorParameterValue(FName(TEXT("BaseColor")), GlowColor);
-			GlowMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), GlowColor);
-			GlowMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), GlowColor);
+			const FLinearColor GlowBaseColor(0.1f, 0.6f, 0.8f, 0.4f);
+			const FLinearColor GlowEmissive = FLinearColor(0.1f, 0.6f, 0.8f, 1.0f) * 1.5f;
+			GlowMat->SetVectorParameterValue(FName(TEXT("Color")), GlowBaseColor);
+			GlowMat->SetVectorParameterValue(FName(TEXT("BaseColor")), GlowBaseColor);
+			GlowMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), GlowEmissive);
+			GlowMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), GlowEmissive);
 		}
 	}
 }

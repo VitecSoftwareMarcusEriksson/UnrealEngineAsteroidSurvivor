@@ -126,9 +126,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
 	float MeshScale = 0.8f;
 
-	/** Base emissive colour for the ship material. */
+	/** Base colour for the ship material (SDR 0–1 range). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Visual")
-	FLinearColor ShipColor = FLinearColor(3.0f, 0.3f, 0.3f, 1.0f);
+	FLinearColor ShipColor = FLinearColor(0.9f, 0.15f, 0.15f, 1.0f);
 
 	/** Number of scrap pickups dropped on destruction. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Drops")
