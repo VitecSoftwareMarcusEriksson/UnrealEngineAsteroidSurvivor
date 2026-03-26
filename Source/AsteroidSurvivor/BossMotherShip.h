@@ -29,6 +29,16 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	/**
+	 * Scale boss stats based on spawn number. Called by WaveManager before InitEnemy.
+	 * Each successive boss gets more HP, damage, volley count, etc.
+	 * @param SpawnNumber  How many bosses have been spawned so far (1 for first boss).
+	 */
+	void ApplyDifficultyScaling(int32 SpawnNumber);
+
+	/** Returns current move speed (may be modified by difficulty scaling). */
+	float GetMoveSpeed() const { return MoveSpeed; }
+
 protected:
 	virtual void UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* PlayerShip) override;
 

@@ -53,6 +53,38 @@ void ABossMotherShip::Tick(float DeltaTime)
 	}
 }
 
+void ABossMotherShip::ApplyDifficultyScaling(int32 SpawnNumber)
+{
+	if (SpawnNumber <= 1)
+	{
+		// First boss uses default stats
+		return;
+	}
+
+	// Each successive boss gets harder:
+	// HP: +50% per spawn (boss 2 = 750, boss 3 = 1000, boss 4 = 1250, ...)
+	const float HpMultiplier = 1.0f + 0.5f * (SpawnNumber - 1);
+	MaxHealth *= HpMultiplier;
+	CurrentHealth = MaxHealth;
+
+	// Contact damage: +25% per spawn
+	const float DamageMultiplier = 1.0f + 0.25f * (SpawnNumber - 1);
+	ContactDamage *= DamageMultiplier;
+
+	// Additional volley projectile every 2 bosses (boss 3 = 4 shots, boss 5 = 5, ...)
+	VolleyCount += (SpawnNumber - 1) / 2;
+
+	// Wider spread to accommodate more projectiles
+	VolleySpread = 20.0f + 5.0f * ((SpawnNumber - 1) / 2);
+
+	// Faster firing: reduce interval by 10% per spawn, minimum 0.5s
+	FireInterval = FMath::Max(0.5f, FireInterval * FMath::Pow(0.9f, static_cast<float>(SpawnNumber - 1)));
+
+	// Score and drops scale with difficulty
+	ScoreValue = static_cast<int32>(ScoreValue * HpMultiplier);
+	ScrapDropCount = static_cast<int32>(ScrapDropCount * (1.0f + 0.3f * (SpawnNumber - 1)));
+}
+
 void ABossMotherShip::UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* PlayerShip)
 {
 	if (!PlayerShip)

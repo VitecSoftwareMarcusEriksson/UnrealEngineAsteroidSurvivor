@@ -44,8 +44,9 @@ void AWaveManager::Tick(float DeltaTime)
 		const FWaveComposition Composition = BuildWaveForCurrentDifficulty();
 		SpawnWave(Composition);
 
-		// Waves come faster as time progresses (minimum 4 seconds apart)
-		const float TimeFactor = FMath::Clamp(1.0f - (ElapsedTime / 600.0f), 0.5f, 1.0f);
+		// Waves come faster as time progresses – no lower floor, keeps accelerating
+		// At 600s the interval is halved, at 1200s it's a third, etc.
+		const float TimeFactor = 1.0f / (1.0f + ElapsedTime / 600.0f);
 		WaveTimer = WaveInterval * TimeFactor;
 	}
 
@@ -79,27 +80,28 @@ FWaveComposition AWaveManager::BuildWaveForCurrentDifficulty() const
 	// Phase 1 (0–30s): Only standard ships
 	// Phase 2 (30–60s): Add zigzag ships
 	// Phase 3 (60–120s): Add shooting ships
-	// Phase 4 (120s+): Full mix, increasing counts
+	// Phase 4 (120s+): Full mix, counts keep growing with no upper limit
 
 	const float T = ElapsedTime;
 
-	// Standard ships: always present, count increases over time
-	Comp.StandardCount = FMath::Clamp(2 + static_cast<int32>(T / 30.0f), 2, 8);
+	// Standard ships: always present, count increases over time with no cap
+	Comp.StandardCount = FMath::Max(2, 2 + static_cast<int32>(T / 30.0f));
 
-	// Zigzag ships: introduced after 30 seconds
+	// Zigzag ships: introduced after 30 seconds, always in groups of at least MinZigzagGroupSize
 	if (T >= 30.0f)
 	{
-		Comp.ZigzagCount = FMath::Clamp(1 + static_cast<int32>((T - 30.0f) / 40.0f), 1, 5);
+		const int32 BaseCount = 1 + static_cast<int32>((T - 30.0f) / 40.0f);
+		Comp.ZigzagCount = FMath::Max(MinZigzagGroupSize, BaseCount);
 	}
 	else
 	{
 		Comp.ZigzagCount = 0;
 	}
 
-	// Shooting ships: introduced after 60 seconds
+	// Shooting ships: introduced after 60 seconds, count grows with no cap
 	if (T >= 60.0f)
 	{
-		Comp.ShootingCount = FMath::Clamp(1 + static_cast<int32>((T - 60.0f) / 50.0f), 1, 4);
+		Comp.ShootingCount = FMath::Max(1, 1 + static_cast<int32>((T - 60.0f) / 50.0f));
 	}
 	else
 	{
@@ -113,12 +115,33 @@ FWaveComposition AWaveManager::BuildWaveForCurrentDifficulty() const
 // Spawning
 // ────────────────────────────────────────────────────────────────────────────
 
+int32 AWaveManager::GetCurrentMaxEnemies() const
+{
+	// Enemy cap grows over time: +5 enemies per 60 seconds, no upper limit
+	return BaseMaxEnemies + static_cast<int32>(ElapsedTime / 60.0f) * 5;
+}
+
 void AWaveManager::SpawnWave(const FWaveComposition& Composition)
 {
-	// Respect the enemy cap
+	// Respect the enemy cap (which grows over time)
 	const int32 CurrentEnemies = CountActiveEnemies();
-	int32 Budget = MaxEnemies - CurrentEnemies;
+	int32 Budget = GetCurrentMaxEnemies() - CurrentEnemies;
 	if (Budget <= 0)
+	{
+		return;
+	}
+
+	// Standard and shooting enemies spawn in clustered waves from one direction
+	SpawnClusteredGroup(EEnemyShipType::Standard, Composition.StandardCount, Budget);
+	SpawnClusteredGroup(EEnemyShipType::Shooting, Composition.ShootingCount, Budget);
+
+	// Zigzag enemies spawn in a line formation
+	SpawnZigzagFormation(Composition.ZigzagCount, Budget);
+}
+
+void AWaveManager::SpawnZigzagFormation(int32 Count, int32& Budget)
+{
+	if (Count <= 0 || Budget <= 0)
 	{
 		return;
 	}
@@ -126,21 +149,59 @@ void AWaveManager::SpawnWave(const FWaveComposition& Composition)
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	const FVector PlayerLoc = PlayerPawn ? PlayerPawn->GetActorLocation() : FVector::ZeroVector;
 
-	// Helper lambda: spawn N enemies of a given type, decrementing budget
-	auto SpawnGroup = [&](EEnemyShipType Type, int32 Count)
-	{
-		for (int32 i = 0; i < Count && Budget > 0; ++i)
-		{
-			const FVector SpawnLoc = GetSpawnLocationOutsideCamera();
-			const FVector DirToPlayer = (PlayerLoc - SpawnLoc).GetSafeNormal();
-			SpawnEnemyOfType(Type, SpawnLoc, DirToPlayer);
-			Budget--;
-		}
-	};
+	// Pick a random angle for the formation center
+	const float CenterAngle = FMath::FRandRange(0.0f, 360.0f);
+	const FVector CenterOffset(
+		FMath::Cos(FMath::DegreesToRadians(CenterAngle)) * SpawnRadius,
+		FMath::Sin(FMath::DegreesToRadians(CenterAngle)) * SpawnRadius,
+		0.0f);
+	const FVector CenterSpawn = PlayerLoc + CenterOffset;
+	const FVector DirToPlayer = (PlayerLoc - CenterSpawn).GetSafeNormal();
 
-	SpawnGroup(EEnemyShipType::Standard, Composition.StandardCount);
-	SpawnGroup(EEnemyShipType::Zigzag,   Composition.ZigzagCount);
-	SpawnGroup(EEnemyShipType::Shooting,  Composition.ShootingCount);
+	// Line direction perpendicular to the direction toward the player
+	const FVector LineDir = FVector(-DirToPlayer.Y, DirToPlayer.X, 0.0f);
+
+	// Center the line formation
+	const float HalfLineLength = (Count - 1) * ZigzagLineSpacing * 0.5f;
+
+	for (int32 i = 0; i < Count && Budget > 0; ++i)
+	{
+		const float Offset = -HalfLineLength + i * ZigzagLineSpacing;
+		const FVector SpawnLoc = CenterSpawn + LineDir * Offset;
+		SpawnEnemyOfType(EEnemyShipType::Zigzag, SpawnLoc, DirToPlayer);
+		Budget--;
+	}
+}
+
+void AWaveManager::SpawnClusteredGroup(EEnemyShipType Type, int32 Count, int32& Budget)
+{
+	if (Count <= 0 || Budget <= 0)
+	{
+		return;
+	}
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const FVector PlayerLoc = PlayerPawn ? PlayerPawn->GetActorLocation() : FVector::ZeroVector;
+
+	// Pick a single direction for the whole wave cluster
+	const float BaseAngle = FMath::FRandRange(0.0f, 360.0f);
+
+	for (int32 i = 0; i < Count && Budget > 0; ++i)
+	{
+		// Cluster enemies within ±20° of the base direction
+		const float AngleDeviation = FMath::FRandRange(-20.0f, 20.0f);
+		const float Angle = BaseAngle + AngleDeviation;
+		// Slight radius variation so they don't stack exactly
+		const float RadiusVariation = FMath::FRandRange(-200.0f, 200.0f);
+		const FVector Offset(
+			FMath::Cos(FMath::DegreesToRadians(Angle)) * (SpawnRadius + RadiusVariation),
+			FMath::Sin(FMath::DegreesToRadians(Angle)) * (SpawnRadius + RadiusVariation),
+			0.0f);
+		const FVector SpawnLoc = PlayerLoc + Offset;
+		const FVector DirToPlayer = (PlayerLoc - SpawnLoc).GetSafeNormal();
+		SpawnEnemyOfType(Type, SpawnLoc, DirToPlayer);
+		Budget--;
+	}
 }
 
 void AWaveManager::SpawnBoss()
@@ -168,8 +229,11 @@ void AWaveManager::SpawnBoss()
 
 	if (Boss)
 	{
+		BossSpawnCount++;
+		// Scale boss difficulty based on how many bosses have been spawned
+		Boss->ApplyDifficultyScaling(BossSpawnCount);
 		// InitEnemy sets direction and uses the boss's own default speed
-		Boss->InitEnemy(DirToPlayer, 160.0f);
+		Boss->InitEnemy(DirToPlayer, Boss->GetMoveSpeed());
 		ActiveBoss = Boss;
 	}
 }
