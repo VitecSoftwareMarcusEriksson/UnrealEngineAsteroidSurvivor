@@ -16,15 +16,21 @@
 
 void FAsteroidSurvivorEditorModule::StartupModule()
 {
+	if (!IsRunningGame())
+	{
+		// Always ensure materials exist on disk – including during cook
+		// commandlets – so that the cooker can pick up the assets listed in
+		// DirectoriesToAlwaysCook.  Without this, command-line packaging
+		// (e.g. BuildCookRun) on a fresh clone would produce a package with
+		// no M_SolidColor material, causing all colours to be missing at
+		// runtime because the shipping-build fallback cannot create
+		// materials dynamically.
+		EnsureDefaultMaterialsExist();
+	}
+
 	if (!IsRunningCommandlet() && !IsRunningGame())
 	{
 		EnsureDefaultMapsExist();
-
-		// This module loads at PostEngineInit phase, so the engine is already
-		// fully initialised by the time StartupModule runs.  Create material
-		// assets directly to avoid a race where the OnPostEngineInit delegate
-		// has already fired before this module was loaded.
-		EnsureDefaultMaterialsExist();
 
 		// Also register the delegate as a belt-and-suspenders fallback.
 		PostEngineInitHandle = FCoreDelegates::OnPostEngineInit.AddRaw(
