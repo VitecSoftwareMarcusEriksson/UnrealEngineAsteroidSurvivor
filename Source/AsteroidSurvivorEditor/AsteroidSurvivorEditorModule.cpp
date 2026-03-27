@@ -11,6 +11,7 @@
 #include "HAL/PlatformFileManager.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionConstant.h"
 
 void FAsteroidSurvivorEditorModule::StartupModule()
@@ -203,6 +204,33 @@ void FAsteroidSurvivorEditorModule::EnsureDefaultMaterialsExist()
 	}
 
 	CreateSolidColorMaterial();
+
+	// ── Translucent variant ──────────────────────────────────────────────
+	const FString TranslucentPackageName = TEXT("/Game/Materials/M_SolidColor_Translucent");
+	const FString TranslucentFilePath = FPackageName::LongPackageNameToFilename(
+		TranslucentPackageName, FPackageName::GetAssetPackageExtension());
+
+	bool bNeedTranslucent = !PlatformFile.FileExists(*TranslucentFilePath);
+	if (!bNeedTranslucent)
+	{
+		UMaterial* ExistingTrans = LoadObject<UMaterial>(nullptr,
+			TEXT("/Game/Materials/M_SolidColor_Translucent.M_SolidColor_Translucent"));
+		if (!ExistingTrans || ExistingTrans->BlendMode != BLEND_Translucent)
+		{
+			if (ExistingTrans)
+			{
+				ExistingTrans->Rename(nullptr, GetTransientPackage(),
+					REN_DontCreateRedirectors | REN_NonTransactional);
+			}
+			PlatformFile.DeleteFile(*TranslucentFilePath);
+			bNeedTranslucent = true;
+		}
+	}
+
+	if (bNeedTranslucent)
+	{
+		CreateSolidColorTranslucentMaterial();
+	}
 }
 
 void FAsteroidSurvivorEditorModule::CreateSolidColorMaterial()
@@ -295,6 +323,107 @@ void FAsteroidSurvivorEditorModule::CreateSolidColorMaterial()
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("AsteroidSurvivor: Failed to save M_SolidColor material"));
+	}
+}
+
+void FAsteroidSurvivorEditorModule::CreateSolidColorTranslucentMaterial()
+{
+	const FString PackageName = TEXT("/Game/Materials/M_SolidColor_Translucent");
+
+	UPackage* Package = CreatePackage(*PackageName);
+	if (!Package)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("AsteroidSurvivor: Failed to create package for M_SolidColor_Translucent"));
+		return;
+	}
+
+	UMaterial* Material = NewObject<UMaterial>(
+		Package, TEXT("M_SolidColor_Translucent"), RF_Public | RF_Standalone);
+	if (!Material)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("AsteroidSurvivor: Failed to create M_SolidColor_Translucent material"));
+		return;
+	}
+
+	// "Color" vector parameter → Base Color
+	UMaterialExpressionVectorParameter* ColorParam =
+		NewObject<UMaterialExpressionVectorParameter>(Material);
+	ColorParam->ParameterName = TEXT("Color");
+	ColorParam->DefaultValue = FLinearColor::White;
+	ColorParam->ExpressionGUID = FGuid::NewGuid();
+
+	// "EmissiveColor" vector parameter → Emissive Color
+	UMaterialExpressionVectorParameter* EmissiveParam =
+		NewObject<UMaterialExpressionVectorParameter>(Material);
+	EmissiveParam->ParameterName = TEXT("EmissiveColor");
+	EmissiveParam->DefaultValue = FLinearColor::Black;
+	EmissiveParam->ExpressionGUID = FGuid::NewGuid();
+
+	// "Opacity" scalar parameter → Opacity pin
+	UMaterialExpressionScalarParameter* OpacityParam =
+		NewObject<UMaterialExpressionScalarParameter>(Material);
+	OpacityParam->ParameterName = TEXT("Opacity");
+	OpacityParam->DefaultValue = 0.3f;
+	OpacityParam->ExpressionGUID = FGuid::NewGuid();
+
+	// Metallic constant
+	UMaterialExpressionConstant* MetallicConst =
+		NewObject<UMaterialExpressionConstant>(Material);
+	MetallicConst->R = 0.15f;
+
+	// Roughness constant
+	UMaterialExpressionConstant* RoughnessConst =
+		NewObject<UMaterialExpressionConstant>(Material);
+	RoughnessConst->R = 0.35f;
+
+	// Register expressions
+	Material->GetExpressionCollection().AddExpression(ColorParam);
+	Material->GetExpressionCollection().AddExpression(EmissiveParam);
+	Material->GetExpressionCollection().AddExpression(OpacityParam);
+	Material->GetExpressionCollection().AddExpression(MetallicConst);
+	Material->GetExpressionCollection().AddExpression(RoughnessConst);
+
+	// Wire expressions to material output pins
+	UMaterialEditorOnlyData* EditorData = Material->GetEditorOnlyData();
+	EditorData->BaseColor.Expression     = ColorParam;
+	EditorData->BaseColor.OutputIndex     = 0;
+	EditorData->EmissiveColor.Expression = EmissiveParam;
+	EditorData->EmissiveColor.OutputIndex = 0;
+	EditorData->Opacity.Expression       = OpacityParam;
+	EditorData->Opacity.OutputIndex       = 0;
+	EditorData->Metallic.Expression      = MetallicConst;
+	EditorData->Metallic.OutputIndex      = 0;
+	EditorData->Roughness.Expression     = RoughnessConst;
+	EditorData->Roughness.OutputIndex     = 0;
+
+	// Translucent blend mode
+	Material->BlendMode = BLEND_Translucent;
+	Material->SetShadingModel(MSM_DefaultLit);
+
+	// Compile shaders
+	Material->PostEditChange();
+
+	// Save to disk
+	const FString FilePath = FPackageName::LongPackageNameToFilename(
+		PackageName, FPackageName::GetAssetPackageExtension());
+
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Standalone;
+
+	const bool bSuccess = UPackage::SavePackage(
+		Package, Material, *FilePath, SaveArgs);
+
+	if (bSuccess)
+	{
+		UE_LOG(LogTemp, Log,
+			TEXT("AsteroidSurvivor: Created M_SolidColor_Translucent material"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("AsteroidSurvivor: Failed to save M_SolidColor_Translucent material"));
 	}
 }
 
