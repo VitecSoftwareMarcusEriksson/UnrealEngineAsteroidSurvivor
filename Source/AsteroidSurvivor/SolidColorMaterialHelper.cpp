@@ -155,10 +155,19 @@ UMaterial* FSolidColorMaterialHelper::GetOrCreateTranslucentMaterial()
 		return CachedTranslucentMaterial.Get();
 	}
 
+	// Try to load the translucent material saved to disk by the Editor module.
+	UMaterial* Mat = LoadObject<UMaterial>(
+		nullptr, TEXT("/Game/Materials/M_SolidColor_Translucent.M_SolidColor_Translucent"));
+	if (Mat)
+	{
+		CachedTranslucentMaterial = Mat;
+		return Mat;
+	}
+
 #if WITH_EDITORONLY_DATA
 	// Create a translucent variant of the solid-colour material with an
 	// "Opacity" scalar parameter for semi-transparent effects (e.g. shields).
-	UMaterial* Mat = NewObject<UMaterial>(
+	Mat = NewObject<UMaterial>(
 		GetTransientPackage(), TEXT("M_SolidColor_Translucent_Runtime"), RF_Transient);
 	if (!Mat)
 	{

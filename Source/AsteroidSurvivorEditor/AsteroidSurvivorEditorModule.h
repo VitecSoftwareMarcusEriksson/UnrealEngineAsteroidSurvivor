@@ -45,6 +45,13 @@ private:
 	 */
 	void CreateSolidColorMaterial();
 
+	/**
+	 * Create M_SolidColor_Translucent – a translucent variant of M_SolidColor
+	 * with an additional "Opacity" scalar parameter for semi-transparent
+	 * effects like shields.
+	 */
+	void CreateSolidColorTranslucentMaterial();
+
 	/** Handle for the OnPostEngineInit delegate so it can be unregistered. */
 	FDelegateHandle PostEngineInitHandle;
 };

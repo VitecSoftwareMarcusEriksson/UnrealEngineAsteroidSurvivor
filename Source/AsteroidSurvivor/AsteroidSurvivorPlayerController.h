@@ -25,4 +25,7 @@ protected:
 private:
 	/** Restarts the current level when the game is over. */
 	void HandleRestart();
+
+	/** Exits the game when the Escape key is pressed. */
+	void HandleQuit();
 };
