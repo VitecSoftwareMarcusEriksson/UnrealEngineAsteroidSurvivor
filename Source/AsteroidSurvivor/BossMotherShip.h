@@ -16,6 +16,7 @@
  * - Higher contact damage.
  * - Drops large amounts of scrap and has a high weapon-drop chance.
  * - Fires volleys of projectiles at the player periodically.
+ * - Gains new weapon types (ring burst, rapid burst) as difficulty scales.
  *
  * The WaveManager handles boss spawning on a separate 60-second timer.
  */
@@ -31,7 +32,7 @@ public:
 
 	/**
 	 * Scale boss stats based on spawn number. Called by WaveManager before InitEnemy.
-	 * Each successive boss gets more HP, damage, volley count, etc.
+	 * Each successive boss gets more HP, damage, volley count, new weapon types, etc.
 	 * @param SpawnNumber  How many bosses have been spawned so far (1 for first boss).
 	 */
 	void ApplyDifficultyScaling(int32 SpawnNumber);
@@ -49,6 +50,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Movement")
 	float TurnRate = 35.0f;
 
+	// ── Volley weapon (always available) ───────────────────────────────────
 	/** Seconds between projectile volleys. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon")
 	float FireInterval = 1.5f;
@@ -61,6 +63,36 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon")
 	float VolleySpread = 20.0f;
 
+	// ── Ring burst weapon (unlocked at boss level 2+) ──────────────────────
+	/** Whether the ring burst attack is enabled. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon|Ring")
+	bool bHasRingAttack = false;
+
+	/** Number of projectiles in the ring burst. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon|Ring")
+	int32 RingProjectileCount = 12;
+
+	/** Seconds between ring burst attacks. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon|Ring")
+	float RingFireInterval = 4.0f;
+
+	// ── Rapid burst weapon (unlocked at boss level 3+) ─────────────────────
+	/** Whether the rapid burst attack is enabled. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon|Rapid")
+	bool bHasRapidBurst = false;
+
+	/** Number of rapid-fire shots in a burst. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon|Rapid")
+	int32 RapidBurstShotCount = 5;
+
+	/** Seconds between each rapid-fire shot within a burst. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon|Rapid")
+	float RapidBurstShotInterval = 0.15f;
+
+	/** Seconds between rapid burst attacks. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Weapon|Rapid")
+	float RapidBurstCooldown = 5.0f;
+
 	// ── Difficulty scaling parameters ───────────────────────────────────────
 	/** HP multiplier increase per boss spawn (e.g. 0.5 = +50% per spawn). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
@@ -72,15 +104,29 @@ protected:
 
 	/** Fire interval reduction factor per spawn (multiplied each time). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
-	float FireIntervalDecayRate = 0.9f;
+	float FireIntervalDecayRate = 0.82f;
 
 	/** Minimum fire interval in seconds (floor for scaling). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
-	float MinFireInterval = 0.5f;
+	float MinFireInterval = 0.3f;
+
+	/** Damage resistance increase per boss spawn (added each time). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Scaling")
+	float DamageResistPerSpawn = 0.08f;
 
 private:
 	float FireTimer = 0.0f;
+	float RingFireTimer = 0.0f;
+	float RapidBurstTimer = 0.0f;
+	int32 RapidBurstShotsRemaining = 0;
+	float RapidBurstShotTimer = 0.0f;
 
 	/** Fires a volley of projectiles toward the player. */
 	void FireVolleyAtPlayer(AAsteroidSurvivorShip* PlayerShip);
+
+	/** Fires projectiles in a ring/circle around the boss. */
+	void FireRingAttack();
+
+	/** Fires a single aimed shot at the player (used for rapid burst). */
+	void FireAimedShot(AAsteroidSurvivorShip* PlayerShip);
 };

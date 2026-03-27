@@ -84,13 +84,13 @@ FWaveComposition AWaveManager::BuildWaveForCurrentDifficulty() const
 
 	const float T = ElapsedTime;
 
-	// Standard ships: always present, count increases over time with no cap
-	Comp.StandardCount = FMath::Max(2, 2 + static_cast<int32>(T / 30.0f));
+	// Standard ships: always present, count increases aggressively over time
+	Comp.StandardCount = FMath::Max(3, 3 + static_cast<int32>(T / 15.0f));
 
 	// Zigzag ships: introduced after 30 seconds, always in groups of at least MinZigzagGroupSize
 	if (T >= 30.0f)
 	{
-		const int32 BaseCount = 1 + static_cast<int32>((T - 30.0f) / 40.0f);
+		const int32 BaseCount = 2 + static_cast<int32>((T - 30.0f) / 20.0f);
 		Comp.ZigzagCount = FMath::Max(MinZigzagGroupSize, BaseCount);
 	}
 	else
@@ -98,10 +98,10 @@ FWaveComposition AWaveManager::BuildWaveForCurrentDifficulty() const
 		Comp.ZigzagCount = 0;
 	}
 
-	// Shooting ships: introduced after 60 seconds, count grows with no cap
+	// Shooting ships: introduced after 60 seconds, count grows aggressively
 	if (T >= 60.0f)
 	{
-		Comp.ShootingCount = FMath::Max(1, 1 + static_cast<int32>((T - 60.0f) / 50.0f));
+		Comp.ShootingCount = FMath::Max(2, 2 + static_cast<int32>((T - 60.0f) / 25.0f));
 	}
 	else
 	{
@@ -168,7 +168,16 @@ void AWaveManager::SpawnZigzagFormation(int32 Count, int32& Budget)
 	{
 		const float Offset = -HalfLineLength + i * ZigzagLineSpacing;
 		const FVector SpawnLoc = CenterSpawn + LineDir * Offset;
-		SpawnEnemyOfType(EEnemyShipType::Zigzag, SpawnLoc, DirToPlayer);
+		AEnemyShipBase* Enemy = SpawnEnemyOfType(EEnemyShipType::Zigzag, SpawnLoc, DirToPlayer);
+
+		// Synchronise the zigzag phase for all ships in this formation
+		// so they oscillate together and maintain line spacing.
+		AZigzagEnemyShip* ZigzagShip = Cast<AZigzagEnemyShip>(Enemy);
+		if (ZigzagShip)
+		{
+			ZigzagShip->SetZigzagPhase(0.0f);
+		}
+
 		Budget--;
 	}
 }
@@ -238,7 +247,7 @@ void AWaveManager::SpawnBoss()
 	}
 }
 
-void AWaveManager::SpawnEnemyOfType(EEnemyShipType Type, const FVector& SpawnLocation,
+AEnemyShipBase* AWaveManager::SpawnEnemyOfType(EEnemyShipType Type, const FVector& SpawnLocation,
                                      const FVector& DirectionToPlayer)
 {
 	FActorSpawnParameters SpawnParams;
@@ -278,6 +287,8 @@ void AWaveManager::SpawnEnemyOfType(EEnemyShipType Type, const FVector& SpawnLoc
 		// internally and UpdateMovement uses it directly.
 		Enemy->InitEnemy(AdjustedDir, 200.0f);
 	}
+
+	return Enemy;
 }
 
 FVector AWaveManager::GetSpawnLocationOutsideCamera() const

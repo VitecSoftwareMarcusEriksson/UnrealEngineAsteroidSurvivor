@@ -99,11 +99,11 @@ protected:
 
 	/** Spacing between zigzag enemies in a line formation (cm). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
-	float ZigzagLineSpacing = 150.0f;
+	float ZigzagLineSpacing = 300.0f;
 
 	/** How many additional enemies the cap increases per 60 seconds of elapsed time. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
-	int32 EnemyCapIncreasePerMinute = 5;
+	int32 EnemyCapIncreasePerMinute = 10;
 
 	/** Angular spread (degrees, ±) for clustered enemy wave spawning. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Waves")
@@ -142,8 +142,8 @@ private:
 	/** Spawns a group of enemies of the given type in a clustered wave from one direction. */
 	void SpawnClusteredGroup(EEnemyShipType Type, int32 Count, int32& Budget);
 
-	/** Spawns a single enemy of the given type at a location outside the camera. */
-	void SpawnEnemyOfType(EEnemyShipType Type, const FVector& SpawnLocation, const FVector& DirectionToPlayer);
+	/** Spawns a single enemy of the given type at a location outside the camera. Returns the spawned enemy, or null on failure. */
+	AEnemyShipBase* SpawnEnemyOfType(EEnemyShipType Type, const FVector& SpawnLocation, const FVector& DirectionToPlayer);
 
 	/** Returns a random spawn location on a circle outside the camera view. */
 	FVector GetSpawnLocationOutsideCamera() const;

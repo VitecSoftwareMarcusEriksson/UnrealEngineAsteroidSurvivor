@@ -151,13 +151,13 @@ void AAsteroidSurvivorShip::BeginPlay()
 		UMaterialInstanceDynamic* ShieldMat = ShieldMesh->CreateDynamicMaterialInstance(0);
 		if (ShieldMat)
 		{
-			const FLinearColor ShieldBaseColor(0.2f, 0.6f, 1.0f, 0.25f);
-			const FLinearColor ShieldEmissive = FLinearColor(0.3f, 0.7f, 1.0f) * 4.0f;
+			const FLinearColor ShieldBaseColor(0.2f, 0.6f, 1.0f, 0.08f);
+			const FLinearColor ShieldEmissive = FLinearColor(0.3f, 0.7f, 1.0f) * 1.5f;
 			ShieldMat->SetVectorParameterValue(FName(TEXT("Color")), ShieldBaseColor);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("BaseColor")), ShieldBaseColor);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("EmissiveColor")), ShieldEmissive);
 			ShieldMat->SetVectorParameterValue(FName(TEXT("Emissive Color")), ShieldEmissive);
-			ShieldMat->SetScalarParameterValue(FName(TEXT("Opacity")), 0.25f);
+			ShieldMat->SetScalarParameterValue(FName(TEXT("Opacity")), 0.08f);
 		}
 	}
 
