@@ -143,6 +143,12 @@ UMaterial* FSolidColorMaterialHelper::GetOrCreateMaterial()
 	CachedMaterial = Mat;
 	return Mat;
 #else
+	UE_LOG(LogTemp, Error,
+		TEXT("AsteroidSurvivor: M_SolidColor material asset not found in "
+		     "cooked content.  Colours will be missing.  Ensure the project "
+		     "has been opened in the Unreal Editor at least once before "
+		     "packaging, or that Content/Materials/ is not excluded from "
+		     "source control."));
 	return nullptr;
 #endif
 }
@@ -241,6 +247,9 @@ UMaterial* FSolidColorMaterialHelper::GetOrCreateTranslucentMaterial()
 	CachedTranslucentMaterial = Mat;
 	return Mat;
 #else
+	UE_LOG(LogTemp, Error,
+		TEXT("AsteroidSurvivor: M_SolidColor_Translucent material asset not "
+		     "found in cooked content.  Translucent effects will be missing."));
 	return nullptr;
 #endif
 }
