@@ -97,7 +97,7 @@ echo ""
     -clientconfig="${CONFIG}" \
     -serverconfig="${CONFIG}" \
     -cook \
-    -allmaps \
+    -map=/Game/Maps/GameLevel+/Game/Maps/MainMenu \
     -build \
     -stage \
     -pak \
