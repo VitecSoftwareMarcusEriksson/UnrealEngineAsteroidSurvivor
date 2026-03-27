@@ -126,7 +126,7 @@ void ABossMotherShip::ApplyDifficultyScaling(int32 SpawnNumber)
 	// Faster firing: reduce interval geometrically, with a minimum floor
 	FireInterval = FMath::Max(MinFireInterval, FireInterval * FMath::Pow(FireIntervalDecayRate, static_cast<float>(Level)));
 
-	// Unlock ring burst attack at level 2+
+	// Unlock ring burst attack starting with the 2nd boss (Level >= 1)
 	if (Level >= 1)
 	{
 		bHasRingAttack = true;
@@ -134,7 +134,7 @@ void ABossMotherShip::ApplyDifficultyScaling(int32 SpawnNumber)
 		RingFireInterval = FMath::Max(1.5f, 4.0f - 0.5f * Level);
 	}
 
-	// Unlock rapid burst attack at level 3+
+	// Unlock rapid burst attack starting with the 3rd boss (Level >= 2)
 	if (Level >= 2)
 	{
 		bHasRapidBurst = true;
