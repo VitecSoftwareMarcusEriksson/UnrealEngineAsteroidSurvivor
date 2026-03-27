@@ -154,6 +154,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Avoidance")
 	float AsteroidAvoidanceStrength = 1.5f;
 
+	/** Damage resistance (0–1). Reduces incoming damage by this fraction. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy")
+	float DamageResistance = 0.0f;
+
 	// ── Runtime state ───────────────────────────────────────────────────────
 	float CurrentHealth = 0.0f;
 	FVector MoveDirection = FVector::ForwardVector;

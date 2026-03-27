@@ -186,6 +186,9 @@ FVector AEnemyShipBase::ComputeAsteroidAvoidance() const
 
 bool AEnemyShipBase::ApplyDamage(float DamageAmount)
 {
+	// Apply damage resistance (safety clamp at 0.95 – boss scaling caps this lower for balance)
+	DamageAmount *= (1.0f - FMath::Clamp(DamageResistance, 0.0f, 0.95f));
+
 	CurrentHealth -= DamageAmount;
 	if (CurrentHealth <= 0.0f)
 	{

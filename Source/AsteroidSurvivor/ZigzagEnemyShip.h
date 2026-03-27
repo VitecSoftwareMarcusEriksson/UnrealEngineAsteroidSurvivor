@@ -41,6 +41,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Movement")
 	float TurnRate = 60.0f;
 
+	/** Set the zigzag phase so formation ships oscillate in sync. */
+	void SetZigzagPhase(float Phase) { ZigzagTimer = Phase; }
+
 private:
 	/** Accumulated time for the sine wave oscillation. */
 	float ZigzagTimer = 0.0f;

@@ -24,6 +24,8 @@ ABossMotherShip::ABossMotherShip()
 
 	// Stagger first volley
 	FireTimer = FMath::FRandRange(0.5f, FireInterval);
+	RingFireTimer = RingFireInterval;
+	RapidBurstTimer = RapidBurstCooldown;
 }
 
 void ABossMotherShip::Tick(float DeltaTime)
@@ -44,11 +46,50 @@ void ABossMotherShip::Tick(float DeltaTime)
 
 	if (Ship)
 	{
+		// Standard volley attack
 		FireTimer -= DeltaTime;
 		if (FireTimer <= 0.0f)
 		{
 			FireVolleyAtPlayer(Ship);
 			FireTimer = FireInterval;
+		}
+
+		// Ring burst attack
+		if (bHasRingAttack)
+		{
+			RingFireTimer -= DeltaTime;
+			if (RingFireTimer <= 0.0f)
+			{
+				FireRingAttack();
+				RingFireTimer = RingFireInterval;
+			}
+		}
+
+		// Rapid burst attack
+		if (bHasRapidBurst)
+		{
+			if (RapidBurstShotsRemaining > 0)
+			{
+				// Currently in a burst – fire shots at rapid intervals
+				RapidBurstShotTimer -= DeltaTime;
+				if (RapidBurstShotTimer <= 0.0f)
+				{
+					FireAimedShot(Ship);
+					RapidBurstShotsRemaining--;
+					RapidBurstShotTimer = RapidBurstShotInterval;
+				}
+			}
+			else
+			{
+				// Waiting for next burst
+				RapidBurstTimer -= DeltaTime;
+				if (RapidBurstTimer <= 0.0f)
+				{
+					RapidBurstShotsRemaining = RapidBurstShotCount;
+					RapidBurstShotTimer = 0.0f; // Fire first shot immediately
+					RapidBurstTimer = RapidBurstCooldown;
+				}
+			}
 		}
 	}
 }
@@ -73,14 +114,34 @@ void ABossMotherShip::ApplyDifficultyScaling(int32 SpawnNumber)
 	const float DamageMultiplier = 1.0f + DamageScalePerSpawn * Level;
 	ContactDamage *= DamageMultiplier;
 
-	// Additional volley projectile every 2 bosses
-	VolleyCount += Level / 2;
+	// Damage resistance: increases each spawn (boss takes less damage over time)
+	DamageResistance = FMath::Min(0.75f, DamageResistPerSpawn * Level);
+
+	// Additional volley projectile every boss
+	VolleyCount += Level;
 
 	// Wider spread to accommodate more projectiles
-	VolleySpread = 20.0f + 5.0f * (Level / 2);
+	VolleySpread = 20.0f + 5.0f * Level;
 
 	// Faster firing: reduce interval geometrically, with a minimum floor
 	FireInterval = FMath::Max(MinFireInterval, FireInterval * FMath::Pow(FireIntervalDecayRate, static_cast<float>(Level)));
+
+	// Unlock ring burst attack starting with the 2nd boss (Level >= 1)
+	if (Level >= 1)
+	{
+		bHasRingAttack = true;
+		RingProjectileCount = 12 + Level * 4;
+		RingFireInterval = FMath::Max(1.5f, 4.0f - 0.5f * Level);
+	}
+
+	// Unlock rapid burst attack starting with the 3rd boss (Level >= 2)
+	if (Level >= 2)
+	{
+		bHasRapidBurst = true;
+		RapidBurstShotCount = 5 + Level * 2;
+		RapidBurstShotInterval = FMath::Max(0.08f, 0.15f - 0.01f * Level);
+		RapidBurstCooldown = FMath::Max(2.0f, 5.0f - 0.5f * Level);
+	}
 
 	// Score and drops scale with difficulty
 	ScoreValue = static_cast<int32>(ScoreValue * HpMultiplier);
@@ -149,4 +210,54 @@ void ABossMotherShip::FireVolleyAtPlayer(AAsteroidSurvivorShip* PlayerShip)
 		GetWorld()->SpawnActor<AEnemyProjectile>(
 			AEnemyProjectile::StaticClass(), SpawnLoc, FireRotation, SpawnParams);
 	}
+}
+
+void ABossMotherShip::FireRingAttack()
+{
+	const float AngleStep = 360.0f / FMath::Max(1, RingProjectileCount);
+
+	for (int32 i = 0; i < RingProjectileCount; ++i)
+	{
+		const float Angle = AngleStep * i;
+		FVector ShotDir(
+			FMath::Cos(FMath::DegreesToRadians(Angle)),
+			FMath::Sin(FMath::DegreesToRadians(Angle)),
+			0.0f);
+		FRotator FireRotation = ShotDir.Rotation();
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		const FVector SpawnLoc = GetActorLocation() + ShotDir * (CollisionRadius + 30.0f);
+
+		GetWorld()->SpawnActor<AEnemyProjectile>(
+			AEnemyProjectile::StaticClass(), SpawnLoc, FireRotation, SpawnParams);
+	}
+}
+
+void ABossMotherShip::FireAimedShot(AAsteroidSurvivorShip* PlayerShip)
+{
+	if (!PlayerShip)
+	{
+		return;
+	}
+
+	const FVector ToPlayer = (PlayerShip->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+	// Add slight random spread for rapid burst shots
+	const float RandomSpread = FMath::FRandRange(-8.0f, 8.0f);
+	FVector ShotDir = ToPlayer.RotateAngleAxis(RandomSpread, FVector::UpVector);
+	FRotator FireRotation = ShotDir.Rotation();
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	const FVector SpawnLoc = GetActorLocation() + ShotDir * (CollisionRadius + 30.0f);
+
+	GetWorld()->SpawnActor<AEnemyProjectile>(
+		AEnemyProjectile::StaticClass(), SpawnLoc, FireRotation, SpawnParams);
 }
