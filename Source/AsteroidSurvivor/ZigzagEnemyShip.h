@@ -26,6 +26,9 @@ class ASTEROIDSURVIVOR_API AZigzagEnemyShip : public AEnemyShipBase
 public:
 	AZigzagEnemyShip();
 
+	/** Set the zigzag phase so formation ships oscillate in sync. */
+	void SetZigzagPhase(float Phase) { ZigzagTimer = Phase; }
+
 protected:
 	virtual void UpdateMovement(float DeltaTime, AAsteroidSurvivorShip* PlayerShip) override;
 
@@ -40,9 +43,6 @@ protected:
 	/** Turn rate for tracking the player (degrees/s). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Movement")
 	float TurnRate = 60.0f;
-
-	/** Set the zigzag phase so formation ships oscillate in sync. */
-	void SetZigzagPhase(float Phase) { ZigzagTimer = Phase; }
 
 private:
 	/** Accumulated time for the sine wave oscillation. */
